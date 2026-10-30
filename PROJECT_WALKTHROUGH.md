@@ -604,6 +604,62 @@ A worked example, the funeral piece from Step 2: model 0.127, style 0.632. The a
 
 README sections completed here: *The rule*, *The numbers*, *A case where my two signals split, and what my rule does with it*, and the description of signal two (corrected to say only one of its three measures carries weight).
 
+**Step 4. Test four deliberate inputs, and log all three numbers**
+
+*Wiring first.* [app.py](app.py) `submit()` now runs signal two after signal one, calls `scoring.combine_signals(model_score, style_score)`, and uses the result as `confidence`. The response and the log entry both carry all three numbers: `model_score`, `style_score` and `combined_score`. The label is the only field still blank (`null`), because it belongs to Milestone 5.
+
+Why log all three, and not only the combined score: when a score looks wrong, the first question is "which signal was off?". With only the combined number there is no way to answer, and next unit's whole diagnosis (name the stage and the mechanism) depends on being able to. `guess` and `label` are still placeholders until the thresholds exist.
+
+*The four inputs*, chosen to cover the cases that matter, run through the real `/submit` route and read back from the log:
+
+| Input | Model | Style | Combined | Gap |
+| --- | --- | --- | --- | --- |
+| Clearly AI (the "fast-paced digital landscape" paragraph) | 0.794 | 0.976 | **0.885** | 0.182 |
+| Clearly human (the sourdough piece) | 0.230 | 0.000 | **0.115** | 0.230 |
+| Formal human (the committee-findings paragraph) | 0.639 | 0.582 | **0.611** | 0.057 |
+| Lightly-edited AI (the casual city-life paragraph) | 0.628 | 0.703 | **0.666** | 0.075 |
+| *Extra: plain human (the "My school is near my house" piece)* | 0.856 | 0.796 | **0.826** | 0.060 |
+
+What this shows:
+
+- **Clearly AI and clearly human score far apart:** 0.885 against 0.115, a gap of 0.77. That is the milestone's headline result, and it is what criterion 2 asks for (a gap of at least 0.30).
+- **The two inputs that matter are not separated.** Formal human writing (0.611) and lightly-edited AI (0.666) land only 0.055 apart. Both are middling, and neither signal can tell a careful human from a lightly edited machine. That is a limit of the signals, not a bug in the wiring.
+- **The plain human piece scores higher than the edited AI.** 0.826 against 0.666. This is the Milestone 1 false-positive case, now measured end to end through the full pipeline.
+
+*Across all 24 test texts*, the combined scores sort into these ranges:
+
+| Group | Combined score |
+| --- | --- |
+| Clearly human (5) | 0.115 to 0.410 |
+| My own expressive writing (7) | 0.142 to 0.510 |
+| Borderline (4), including formal human and edited AI | 0.611 to 0.783 |
+| Plain writing (3) | 0.765 to 0.830 |
+| Clearly AI (5) | 0.885 to 0.924 |
+
+The order is: human, then my expressive writing, then borderline, then plain writing, then clearly AI. The plain pieces sit *above* the borderline ones, which is the wrong way round, and only about 0.06 below the lowest clearly-AI score.
+
+**What this means for Milestone 5 (thresholds).** The score now separates clearly-AI from clearly-human, and that works. The false-positive protection now depends entirely on where the "AI" threshold sits, because no rule for combining the signals can fix plain writing (see Step 3). On these test texts, an AI threshold of about 0.85 would call all five clearly-AI pieces AI while leaving every plain piece, the edited AI and the formal human as "unsure". But the margin is thin (the highest plain piece is 0.830, the lowest clearly-AI is 0.885), and two honest caveats apply: the plain and "human" texts are Claude's stand-ins, not my own writing, and a threshold that high means a lot of AI text will be labelled "unsure" instead of "AI". That is the trade from Milestone 1, and the unsure label's wording will matter a great deal. These are observations for Milestone 5, and the threshold is not chosen yet.
+
+*Following the stuck-advice, in spirit:* when scores surprise you, print both signals for every input in one table and look. That is exactly what Step 2 and the table above are. It showed that one signal (style) is carried by a single measure, that the two signals agree where they are wrong together (plain writing), and which texts split. Those are real findings, and next unit's testing is meant to surface exactly this kind of thing.
+
+*README:* the Sample Run was refreshed with a clean log. It now shows `style_score`, a real `confidence`, and log entries with all three numbers.
+
+**Milestone 4 summary: what is true now**
+
+- Both signals run and combine into one score. Clearly-AI and clearly-human text score far apart (0.885 against 0.115).
+- The log records all three numbers for every decision.
+- Still placeholders, by design: `guess` and `label` (Milestone 5), and `POST /appeal` (Milestone 5).
+
+**What this milestone taught**
+
+- **Check the data before trusting a hypothesis.** The brief's three measures sounded sensible, but only one separated the texts, and one ran the wrong way. Weighting a measure that the data contradicts would have added noise on purpose.
+- **A disagreement rule and an agreement problem are different problems.** The rule handles two signals that split. It cannot handle two signals that agree and are both wrong, and pretending otherwise would hide the most important risk.
+- **Write the rule before the code, and test the properties, not just examples.** Sweeping every pair of scores across a grid caught the class of bug that a few hand-picked examples miss.
+- **Read tests as well as running them.** Two of mine were wrong on the first pass, and a passing suite would have hidden that.
+- **Log the inputs to a decision, not just the decision.** Everything next unit depends on being able to see which stage was off.
+
+**Before moving on:** both signals run and combine into one score. Clearly-AI and clearly-human text score noticeably apart. The log records all three numbers. Done.
+
 ---
 
 ## Features

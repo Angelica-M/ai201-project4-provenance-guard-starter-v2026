@@ -31,6 +31,8 @@ from flask import Flask, jsonify, request
 import audit
 import config
 import detector
+import scoring
+import stylometry
 
 app = Flask(__name__)
 
@@ -268,36 +270,49 @@ def submit():
     except detector.DetectorUnavailable as exc:
         return _error(503, "detector_unavailable", str(exc), creator_id)
 
-    # 4. Decide, and remember the decision. content_id is generated here and
+    # 4. Run signal two (Milestone 4). It measures the text's shape, never loads
+    #    a model, and can't fail on text that already passed the checks above,
+    #    so it needs no error handling of its own.
+    style_score = stylometry.style_signal(text)
+
+    # 5. Turn two numbers into one. This is the number that will be labelled.
+    #    Both inputs are kept as well, and go in the log and the response: when
+    #    a score looks wrong, the first question is "which signal was off?",
+    #    and without both numbers nothing can answer it.
+    combined_score = scoring.combine_signals(model_score, style_score)
+
+    # 6. Decide, and remember the decision. content_id is generated here and
     #    must go back to the caller: /appeal needs it to find this decision
-    #    again. `guess` and `confidence` are placeholders until Milestones 4
-    #    and 5, which is why they are constants and not computed from
-    #    model_score. Nothing downstream should be built on them yet.
+    #    again. `confidence` is the combined score. `guess` and `label` are
+    #    still placeholders until Milestone 5 (thresholds and wording), which is
+    #    why they are constants and not derived from the score yet.
     content_id = str(uuid.uuid4())
     guess = "unsure"
-    confidence = 0.5
+    confidence = combined_score
 
-    # 5. Write it to the audit log BEFORE answering. If the answer is sent first
+    # 7. Write it to the audit log BEFORE answering. If the answer is sent first
     #    and the write then fails, the caller holds a decision the service has no
-    #    record of, and an appeal against it would find nothing. Fields that
-    #    don't exist yet (the style score, the combined score, the label) are
-    #    left as None on purpose: an honest blank beats a made-up value, and the
-    #    entry already has the right shape for when Milestones 4 and 5 fill them.
+    #    record of, and an appeal against it would find nothing. All three
+    #    numbers go in. The label is the one field left as None on purpose, since
+    #    it doesn't exist yet: an honest blank beats a made-up value.
     audit.log_decision(
         content_id=content_id,
         creator_id=creator_id,
         guess=guess,
         model_score=model_score,
+        style_score=style_score,
+        combined_score=combined_score,
         status="decided",
     )
 
-    # 6. Answer.
+    # 8. Answer.
     return jsonify({
         "content_id": content_id,
         "guess": guess,
         "confidence": confidence,
         "label": "PLACEHOLDER: the real label arrives in Milestone 5.",
         "model_score": model_score,
+        "style_score": style_score,
     }), 200
 
 
