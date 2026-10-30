@@ -367,6 +367,22 @@ A criterion is only testable if running it produces a yes or no. Two files do th
 
 **Before moving on:** `criteria.md` has 5 numbered criteria, each names a number or an observable outcome, and each has a reason underneath. Done.
 
+### Milestone 3: Get the endpoint running with one signal
+
+**The idea:** One route, one signal, one real response. The second signal is deliberately not added yet. One working signal is easy to debug. Two broken ones are not, and you can't tell which is lying.
+
+**Where the answers went:** The code is in [app.py](app.py) (`submit`). The README's *Sample Run* section holds the pasted requests and responses (step 5). Each step below was committed on its own.
+
+**A note on testing:** an older `app.py` from an earlier smoke test was still holding port 5000 and couldn't be stopped from the tooling, so these steps were run on port 5001 (`PORT=5001 python app.py`). The code is identical either way. Use `5000` on your own machine.
+
+**Step 1. Fill in `submit`: a hardcoded answer first**
+
+What changed: the starter's `501 not_implemented` reply in `submit()` was replaced with a fixed JSON response: a placeholder `content_id`, `guess`, `confidence`, `label` and `model_score`. Nothing is computed.
+
+Why do it this way: it separates two kinds of failure. If `curl` gets the hardcoded answer back, the route, the JSON handling and the server all work, so anything that breaks once real logic goes in is the logic's fault. The same idea is why `/ping` is left alone as a control.
+
+How it was checked: `/ping` and `/submit` both answered `200` with JSON (see the README's Sample Run for the final version).
+
 ---
 
 ## Features
