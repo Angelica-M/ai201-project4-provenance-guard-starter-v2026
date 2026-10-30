@@ -392,32 +392,62 @@ $ curl.exe -X POST http://127.0.0.1:5001/submit -H "Content-Type: application/js
 
 **An appeal**
 
-> Not built yet in this step. `POST /appeal` is added in the next one, and this
-> block is filled in then.
+writer_ana's text was labelled "high-confidence AI" above, but they wrote it
+themselves. They appeal using the `content_id` from their `/submit` response
+(`1cfcb48a-...`) and say why:
 
 ```bash
-$ curl -X POST http://127.0.0.1:5000/appeal \
-  -H "Content-Type: application/json" \
-  -d '{"content_id": "...", "reasoning": "..."}'
-```
-
-```json
-
-```
-
-**What the log shows afterwards**
-
-The four requests above, read back from the audit log (`logs/audit.jsonl`).
-Each decision records all three numbers and the exact label the reader was
-shown. The refusal is there too, attributed to the writer who sent it:
-
-```bash
-$ curl.exe "http://127.0.0.1:5001/log?limit=4"
+$ curl.exe -X POST http://127.0.0.1:5001/appeal -H "Content-Type: application/json" -d '{\"content_id\": \"1cfcb48a-d890-412f-bc0a-357a63d8138b\", \"reasoning\": \"I wrote this myself for a time-management workshop. I tend to write in short, tidy sentences.\"}'
 ```
 
 ```json
 {
-  "count": 4,
+  "content_id": "1cfcb48a-d890-412f-bc0a-357a63d8138b",
+  "message": "Your appeal has been recorded and this result is marked under review.",
+  "status": "under_review"
+}
+```
+
+The same appeal with one character of the `content_id` changed (`...138c`
+instead of `...138b`). This is the typo that makes an appeal endpoint look
+broken, so it is refused with a clear 404 that says what to check, and it is
+logged too, not silently dropped:
+
+```bash
+$ curl.exe -X POST http://127.0.0.1:5001/appeal -H "Content-Type: application/json" -d '{\"content_id\": \"1cfcb48a-d890-412f-bc0a-357a63d8138c\", \"reasoning\": \"Same writer, wrong id.\"}'
+```
+
+```json
+{
+  "error": "unknown_content_id",
+  "message": "No submission has that content_id. Check it was copied exactly from the /submit response."
+}
+```
+
+**What the log shows afterwards**
+
+All six requests above (three decisions, the empty-text refusal, the appeal, and
+the typo'd appeal), read back from the audit log (`logs/audit.jsonl`):
+
+```bash
+$ curl.exe "http://127.0.0.1:5001/log?limit=6"
+```
+
+How to read it:
+
+- **Entry 1** is writer_ana's original decision, with the "AI" label. It is
+  *unchanged*: its `status` is still `decided`. The log only ever appends, so
+  an appeal never edits or deletes what was decided.
+- **Entry 5** is the appeal, with `"status": "under_review"`, the writer's own
+  `reasoning`, and the same `content_id` as entry 1. That is the status change:
+  it is a new line after the decision, so anyone reading the log can see what
+  was decided, that it was challenged, and in what order.
+- **Entry 6** is the typo'd appeal, recorded as a rejection with the reason
+  `unknown_content_id`. It did not create an appeal.
+
+```json
+{
+  "count": 6,
   "entries": [
     {
       "combined_score": 0.9197,
@@ -458,6 +488,21 @@ $ curl.exe "http://127.0.0.1:5001/log?limit=4"
       "reason": "invalid_input",
       "status": "rejected",
       "timestamp": "2026-10-30T20:31:35+00:00"
+    },
+    {
+      "content_id": "1cfcb48a-d890-412f-bc0a-357a63d8138b",
+      "creator_id": "writer_ana",
+      "event": "appeal",
+      "reasoning": "I wrote this myself for a time-management workshop. I tend to write in short, tidy sentences.",
+      "status": "under_review",
+      "timestamp": "2026-10-30T20:33:40+00:00"
+    },
+    {
+      "creator_id": "unknown",
+      "event": "rejected",
+      "reason": "unknown_content_id",
+      "status": "rejected",
+      "timestamp": "2026-10-30T20:33:40+00:00"
     }
   ]
 }

@@ -51,6 +51,12 @@ DETECTOR_MAX_TOKENS = 400
 # up front (413) is cheaper than reading it and then ignoring most of it.
 MAX_TEXT_CHARS = 20_000
 
+# The longest appeal `reasoning` /appeal will accept, in characters. An appeal is
+# a few sentences from a person; 5,000 characters is several pages. The cap
+# stops one request writing an enormous line into an append-only log that can
+# never be trimmed.
+MAX_REASONING_CHARS = 5_000
+
 
 # ─── Scoring (Milestone 4) ───────────────────────────────────────────────────
 # How much each signal counts toward the combined score.

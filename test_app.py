@@ -197,5 +197,136 @@ class SubmitRefusals(ServiceTestCase):
         self.assertEqual(response.get_json()["you_sent"], "hello")
 
 
+class Appeal(ServiceTestCase):
+    """POST /appeal: record it, mark it under_review, never touch the decision."""
+
+    REASON = "I wrote this myself, in one sitting, for a class."
+
+    def submitted(self, creator="writer_ana"):
+        """Submit once and hand back the content_id, as a real caller would."""
+        return self.submit(creator=creator).get_json()["content_id"]
+
+    def appeal(self, content_id, reasoning=None, **extra):
+        body = {"content_id": content_id,
+                "reasoning": self.REASON if reasoning is None else reasoning, **extra}
+        return self.client.post("/appeal", json=body)
+
+    def test_an_appeal_on_a_real_id_is_confirmed_as_under_review(self):
+        cid = self.submitted()
+        response = self.appeal(cid)
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(data["content_id"], cid)
+        self.assertEqual(data["status"], "under_review")
+        self.assertTrue(data["message"])
+
+    def test_the_appeal_is_written_to_the_log_after_the_decision(self):
+        cid = self.submitted()
+        self.appeal(cid)
+        decision, appeal = self.log()
+        self.assertNotIn("event", decision)
+        self.assertEqual(appeal["event"], "appeal")
+        self.assertEqual(appeal["content_id"], cid)
+        self.assertEqual(appeal["status"], "under_review")
+        self.assertEqual(appeal["reasoning"], self.REASON)
+        self.assertTrue(appeal["timestamp"])
+
+    def test_the_original_decision_is_left_exactly_as_it_was(self):
+        cid = self.submitted()
+        before = self.log()[0]
+        self.appeal(cid)
+        self.assertEqual(self.log()[0], before)           # unchanged, still first
+        self.assertEqual(self.log()[0]["status"], "decided")
+
+    def test_the_appeal_is_filed_under_the_original_writer_not_the_request(self):
+        cid = self.submitted(creator="writer_ana")
+        self.appeal(cid, creator_id="someone_else")        # an attempt to spoof
+        self.assertEqual(self.log()[1]["creator_id"], "writer_ana")
+
+    def test_appeals_touch_only_their_own_decision(self):
+        first, second = self.submitted("a"), self.submitted("b")
+        self.appeal(first)
+        by_id = {e["content_id"]: [] for e in self.log()}
+        for entry in self.log():
+            by_id[entry["content_id"]].append(entry)
+        self.assertEqual(len(by_id[first]), 2)
+        self.assertEqual(len(by_id[second]), 1)
+
+    def test_appealing_twice_records_both_and_stays_under_review(self):
+        cid = self.submitted()
+        self.assertEqual(self.appeal(cid, "first reason").status_code, 200)
+        self.assertEqual(self.appeal(cid, "second reason").status_code, 200)
+        appeals = [e for e in self.log() if e.get("event") == "appeal"]
+        self.assertEqual([a["reasoning"] for a in appeals], ["first reason", "second reason"])
+        self.assertTrue(all(a["status"] == "under_review" for a in appeals))
+
+    def test_an_unknown_id_is_a_404_and_writes_no_appeal(self):
+        response = self.appeal("never-issued")
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.get_json()["error"], "unknown_content_id")
+        self.assertFalse([e for e in self.log() if e.get("event") == "appeal"])
+
+    def test_a_typo_in_the_id_is_caught_loudly_not_silently(self):
+        # The most common way this endpoint "doesn't work": one wrong character.
+        cid = self.submitted()
+        typo = cid[:-1] + ("0" if cid[-1] != "0" else "1")
+        response = self.appeal(typo)
+        self.assertEqual(response.status_code, 404)
+        self.assertIn("copied exactly", response.get_json()["message"])
+        self.assertFalse([e for e in self.log() if e.get("event") == "appeal"])
+
+    def test_a_refused_appeal_is_still_logged_as_a_rejection(self):
+        self.appeal("never-issued")
+        (entry,) = self.log()
+        self.assertEqual(entry["event"], "rejected")
+        self.assertEqual(entry["reason"], "unknown_content_id")
+
+    def test_bad_appeal_bodies_get_a_clean_400(self):
+        cid = self.submitted()
+        bad = [
+            {"reasoning": self.REASON},                       # no content_id
+            {"content_id": cid},                              # no reasoning
+            {"content_id": "", "reasoning": self.REASON},
+            {"content_id": cid, "reasoning": ""},
+            {"content_id": cid, "reasoning": "   \n "},
+            {"content_id": 123, "reasoning": self.REASON},
+            {"content_id": cid, "reasoning": ["a list"]},
+            {"content_id": None, "reasoning": None},
+            [cid],
+        ]
+        for body in bad:
+            response = self.client.post("/appeal", json=body)
+            self.assertEqual(response.status_code, 400, body)
+            self.assertEqual(response.get_json()["error"], "invalid_input", body)
+        # And none of them recorded an appeal.
+        self.assertFalse([e for e in self.log() if e.get("event") == "appeal"])
+
+    def test_a_body_that_is_not_json_is_refused(self):
+        response = self.client.post("/appeal", data="nope", content_type="text/plain")
+        self.assertEqual(response.status_code, 400)
+
+    def test_an_enormous_reasoning_is_refused_with_a_413(self):
+        cid = self.submitted()
+        response = self.appeal(cid, "x" * (config.MAX_REASONING_CHARS + 1))
+        self.assertEqual(response.status_code, 413)
+        self.assertFalse([e for e in self.log() if e.get("event") == "appeal"])
+
+    def test_reasoning_at_exactly_the_limit_is_accepted(self):
+        cid = self.submitted()
+        self.assertEqual(self.appeal(cid, "x" * config.MAX_REASONING_CHARS).status_code, 200)
+
+    def test_the_log_stays_readable_json_after_unusual_reasoning(self):
+        cid = self.submitted()
+        odd = 'Quotes "like this", a newline\nand unicode: café — done.'
+        self.appeal(cid, odd)
+        self.assertEqual(self.log()[1]["reasoning"], odd)
+        for line in (self.tmp / "audit.jsonl").read_text(encoding="utf-8").splitlines():
+            json.loads(line)                                # every line parses
+
+    def test_a_refusal_does_not_break_the_service(self):
+        self.appeal("never-issued")
+        self.assertEqual(self.client.post("/ping", json={"message": "x"}).status_code, 200)
+
+
 if __name__ == "__main__":
     unittest.main()

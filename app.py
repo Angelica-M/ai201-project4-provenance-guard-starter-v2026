@@ -18,8 +18,8 @@ doesn't, it's the service itself.
 Routes:
 
     POST /ping        the worked example. Already works. Don't edit it
-    POST /submit      ← YOU BUILD THIS (Milestone 3, 4, 5)
-    POST /appeal      ← YOU BUILD THIS (Milestone 5)
+    POST /submit      built in Milestones 3, 4 and 5: two signals, a score, a label
+    POST /appeal      built in Milestone 5: records an appeal, marks it under_review
     GET  /log         the audit log. Already works
     GET  /health      is the service up, and is the model loaded
 """
@@ -176,14 +176,14 @@ def health():
     })
 
 
-# ── YOU BUILD THIS ────────────────────────────────────────────────────────────
+# ── The two routes built in this project ─────────────────────────────────────────────────────────────────────────────────────────────────
 
 @app.post("/submit")
 # @limiter.limit(f"{config.RATE_LIMIT_PER_MINUTE}/minute;{config.RATE_LIMIT_PER_DAY}/day")
 def submit():
     """
     Take a piece of text, decide about it, log the decision, answer.
-    ← TODO — Milestones 3, 4 and 5
+    (Built in Milestones 3, 4 and 5.)
 
     Expects JSON:
         {"text": "...", "creator_id": "..."}
@@ -325,7 +325,7 @@ def submit():
 @app.post("/appeal")
 def appeal():
     """
-    A writer says you got it wrong. ← TODO — Milestone 5
+    A writer says you got it wrong. (Built in Milestone 5.)
 
     Expects JSON:
         {"content_id": "...", "reasoning": "..."}
@@ -342,14 +342,67 @@ def appeal():
     to the person on the other end. It's the only thing standing between a
     wrong accusation and nothing at all.
     """
-    payload = request.get_json(silent=True) or {}
+    # ── MILESTONE 5: the appeal. ──────────────────────────────────────────────
+    # The order below is the point. Each step assumes the one before it passed,
+    # and the lookup comes BEFORE the write: recording an appeal against an id
+    # that was never issued would tell the writer "recorded" about something
+    # nothing can ever act on.
 
-    # TODO: delete this and build the route.
+    # 1. Read and check the body, the same way /submit does. `silent=True` gives
+    #    None for a body that isn't JSON, so we can refuse it cleanly.
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error(400, "invalid_input",
+                      "Send a JSON object with content_id and reasoning.")
+
+    content_id = payload.get("content_id")
+    reasoning = payload.get("reasoning")
+
+    if not isinstance(content_id, str) or not content_id.strip():
+        return _error(400, "invalid_input", "content_id must be a non-empty string.")
+    if not isinstance(reasoning, str) or not reasoning.strip():
+        return _error(400, "invalid_input",
+                      "reasoning must be a non-empty string: tell us why you "
+                      "think this was a mistake.")
+    if len(reasoning) > config.MAX_REASONING_CHARS:
+        return _error(413, "reasoning_too_long",
+                      f"reasoning is over {config.MAX_REASONING_CHARS:,} characters.")
+
+    # 2. Check the content_id really exists. This is the single most common way
+    #    this endpoint "doesn't work": a typo'd or stale id fails quietly and
+    #    looks like a broken route. `entries_for` returns every log line that
+    #    touches this id, so the original decision is the first one that isn't
+    #    an event (appeals and rejections carry an `event` field; decisions
+    #    don't). Refusing here, with a 404 that says why, is what makes the typo
+    #    visible at once.
+    decision = next((e for e in audit.entries_for(content_id) if "event" not in e), None)
+    if decision is None:
+        return _error(404, "unknown_content_id",
+                      "No submission has that content_id. Check it was copied "
+                      "exactly from the /submit response.")
+
+    # 3. Record the appeal. `log_appeal` APPENDS: the original decision stays
+    #    exactly where it was and the appeal sits after it, so anyone reading
+    #    the log later can see what was decided, that it was challenged, and in
+    #    what order. Nothing is edited or deleted, which is also why the status
+    #    "change" is a new line carrying status "under_review" and not a rewrite
+    #    of the old one. The creator is taken from the decision, not from the
+    #    request, so an appeal can't be filed in someone else's name.
+    audit.log_appeal(
+        content_id=content_id,
+        creator_id=decision["creator_id"],
+        reasoning=reasoning,
+    )
+
+    # 4. Confirm. No automatic re-checking, as the brief says: the appeal is
+    #    recorded and marked for review, and the message promises exactly that
+    #    and no more.
     return jsonify({
-        "error": "not_implemented",
-        "message": "POST /appeal isn't built yet — see the TODO in app.py.",
-        "you_sent": payload,
-    }), 501
+        "content_id": content_id,
+        "status": "under_review",
+        "message": "Your appeal has been recorded and this result is marked "
+                   "under review.",
+    }), 200
 
 
 # ── Already works ─────────────────────────────────────────────────────────────

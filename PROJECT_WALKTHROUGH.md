@@ -730,6 +730,66 @@ The third row is the one the thresholds exist for. At the old placeholder line o
 
 README: *Sample Run* was rewritten with the three submissions (one per label), the refusal, and the log read-back with real labels. The appeal block is still waiting for step 3.
 
+**Step 3. Build `app.py::appeal`**
+
+What it does: takes a `content_id` and the writer's `reasoning`, records the appeal in the log next to the original decision, marks the item `under_review`, and confirms. The appeal is the only thing standing between a wrong accusation and nothing at all, so it was built to fail loudly and never silently.
+
+The route runs in this order, and the order is the design:
+
+1. **Read and check the body**, the same way `/submit` does: it must be a JSON object, and `content_id` and `reasoning` must be non-empty strings (400 otherwise). `reasoning` is capped at 5,000 characters (413), so one request can't write an enormous line into a log that can never be trimmed.
+2. **Check the `content_id` really exists** (404 `unknown_content_id` if not). This comes *before* the write, on purpose. Recording an appeal against an id that was never issued would tell the writer "recorded" about something nothing can ever act on. This is also the starter's stuck-advice, and the single most common way this endpoint "doesn't work": a typo'd or stale id fails quietly and looks like a broken route. The 404 message says what to check.
+3. **Record the appeal** with `audit.log_appeal`, which *appends* a new line (`event: "appeal"`, `status: "under_review"`, the reasoning) and never edits the decision. The original stays exactly where it was and the appeal sits after it, so anyone reading the log can see what was decided, that it was challenged, and in what order.
+4. **Confirm**, promising only what actually happens: "Your appeal has been recorded and this result is marked under review." No automatic re-checking, as the brief says, and no promise that a person will read it.
+
+Decisions worth understanding:
+
+- **"Sets the status to under_review" in an append-only log.** The log is never rewritten, so the status change is a *new line* carrying `under_review`, appearing after the original `decided` line. Reading an item's status means reading its latest line. This is the standard way to get an audit trail: you never lose what was previously true.
+- **The creator comes from the decision, not the request.** An appeal is filed under the original writer. A request that includes some other `creator_id` is ignored, so an appeal can't be filed in someone else's name. (A test tries exactly that.)
+- **Appealing twice is allowed.** Both appeals are recorded and the status stays `under_review`. Refusing a second appeal would punish a writer for adding detail.
+- **Refusals are logged too**, including the typo'd id, so an attack or a mistake never shows up only as an absence.
+
+**Evidence, through the running service** (pasted as text in the README's *Sample Run*):
+
+- writer_ana's text was labelled "AI", but she wrote it herself. She appealed with her real `content_id` and reasoning, and got `200` with `status: under_review`.
+- The same appeal with one character of the id changed got `404 unknown_content_id`, with a message saying to check the id was copied exactly. It was logged as a rejection and created no appeal.
+- `GET /log` then showed entry 1 (her original decision, still `decided` and unchanged), entry 5 (the appeal, `under_review`, her reasoning, same `content_id`), and entry 6 (the rejected typo).
+
+**Tests added** ([test_app.py](test_app.py), now 29 tests): the appeal is confirmed and appended after the decision; the decision is byte-for-byte unchanged; the creator can't be spoofed; appeals touch only their own item; appealing twice records both; an unknown id and a one-character typo are both a loud 404 with no appeal written; every bad body (nine variants) gets a clean 400 and writes nothing; a reasoning over the limit is refused and one at exactly the limit is accepted; unusual characters (quotes, newlines, accents, a dash) keep the log valid JSON on every line.
+
+**A smoke test against the real service, with a caveat that matters.** The evaluation harness from Milestone 2 was run against the real service (three trials; the service's log and the report went to a scratch folder, so the committed evidence is untouched). All five criteria read "met" in all three trials:
+
+| Criterion | Result in each of 3 trials |
+| --- | --- |
+| 1. At most 1 of 10 own pieces labelled AI | 0 of 10 labelled AI |
+| 2. Clearly-AI and clearly-human far apart | Gap 0.62; 5 of 5 on each correct side |
+| 3. All three labels reachable | All three appear; 4 of 4 borderline "unsure" |
+| 4. Appeal path | 10 of 10 appeals recorded correctly; 5 of 5 unknown ids refused |
+| 5. Bad input | 8 of 8 clean JSON errors; no 500; `/ping` alive; 8 rejections logged |
+
+**This is a smoke test, not the unit 8 evidence, and it should not be read as one**, for two reasons:
+
+1. **It's in-sample.** The 0.85 AI line was chosen in Step 1 *by looking at how these same test texts scored* in Milestone 4. So criterion 1 passing (0 of 10 accused) and criterion 3 passing (4 of 4 borderline "unsure") partly reflect a threshold tuned to the texts being tested, and not an independent result.
+2. **The texts are stand-ins.** The "my own writing", "clearly human" and "borderline" texts were drafted by Claude, not written by me. The real test is my own writing, and plain real writing may well score differently.
+
+What it *does* show is that the machinery works end to end (the harness drives real appeals and real bad input against real code, and every check can say yes). Whether the *service* meets its targets will be learned in unit 8 with writing I produce myself. Every score was identical across the three trials, because the model runs deterministically on the CPU here, so the repeats did not show noise; they would if the scores were close to a threshold.
+
+**Milestone 5 summary: what is true now**
+
+- All three labels are reachable and written out in the README (*Label Variants*), with the score range each one covers.
+- An appeal changes status (to `under_review`) and shows in the log next to the original decision, which stays unchanged.
+- Every route in the Milestone 1 contract is built: `/submit` returns `content_id`, `guess`, `confidence`, `label`, `model_score` and `style_score`; `/appeal` records and confirms; both refuse bad input cleanly and log the refusal.
+
+**What this milestone taught**
+
+- **The label is the product.** The numbers are internal; the sentence is what a person meets. Writing it for someone who has never heard "threshold", and for the worst-case reader (a real writer reading "unsure"), changed what each label says.
+- **A threshold is a decision about who pays, not a tuning knob.** Moving the AI line from 0.65 to 0.85 protects plain writers and costs the readers some protection. The number matters less than saying plainly who bears the cost.
+- **Check that something exists before you write about it.** The appeal looks up the id *before* recording, so a typo is a loud 404 and not a silent success. The same idea applies anywhere a write depends on a lookup.
+- **An append-only log changes how you think about "status".** Nothing is overwritten; the latest line is the truth, and the earlier lines are the history that makes an audit possible.
+- **Keep the README and the code from drifting apart.** A test now fails if the README's label text differs from the code's, because the README is the submission.
+- **Be honest about circularity.** A target that passes because the threshold was fitted to the same texts is a weaker result than it looks, and saying so is part of reporting it.
+
+**Before moving on:** all 3 labels are reachable and written out in the README. An appeal changes status and shows in the log. Done.
+
 ---
 
 ## Features
