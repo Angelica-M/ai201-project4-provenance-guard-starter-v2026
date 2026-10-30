@@ -1,3 +1,34 @@
+# Unit 7 — Building a Safety Layer
+
+Sites where people publish their own writing have a problem nobody has solved. Someone submits a poem. Was it theirs?
+
+Detection tools get this wrong in both directions, and the two directions are not equally bad. Missing an AI-generated submission is a nuisance. Accusing a real writer of cheating is the kind of mistake that ends someone's relationship with a platform. Which means the interesting engineering here isn't the detector at all. It's what the system does when it isn't sure.
+
+For your project you're building **Provenance Guard**: a small backend service a writing site could plug into. Text goes in. What comes back is a guess, a confidence score, a plain-English label a reader would actually see, and a way for the writer to push back on it.
+
+This is also the unit the course stops handing you a script and starts handing you a service. The instructor half is a live build of the backend scaffolding (routing, POST, JSON in and out, testing an endpoint), and you'll leave class with a running service and one empty route. Everything past that route is yours.
+
+This project runs for two units. In this unit, you build it and commit your criteria. Next unit you add the instrumentation that lets you see an attack, and then somebody attacks it with a set you didn't write. Same repository both units.
+
+You write all five acceptance criteria. None are given.
+
+**Why this matters:** Every AI feature that touches users eventually needs this layer: a decision, a confidence, a disclosure, and an appeal. The judgment it takes to decide where the threshold sits, what the unsure label says, and who bears the cost of a wrong call is not a machine learning skill. It's the thing that makes the difference between a model and a product, and it's increasingly what "responsible AI" means in a job description rather than a press release.
+
+### Learning Objectives
+
+By the end of this unit, you will be able to:
+
+- Build an HTTP endpoint that accepts JSON and returns structured JSON
+- Combine two genuinely different signals into a single confidence score
+- Choose a threshold and defend where you put it
+- Write user-facing text that communicates uncertainty honestly
+- Design an appeal path for the case where your system is wrong
+- Write acceptance criteria for a system where a false positive is expensive
+
+**What you're building in this unit:** A running service with a `POST /submit` endpoint, two independent signals, a confidence score that varies, three written label variants, a `POST /appeal` path, and five acceptance criteria, all your own, committed before any results exist.
+
+---
+
 # Provenance Guard
 
 Sites where people post their own writing have a new problem. Somebody submits a poem. Was it theirs?
@@ -243,6 +274,98 @@ I checked it for the questions a builder would ask. These were open until I wrot
 - *What does an appeal do to the log?* It appends. The original decision is never overwritten.
 
 **Before moving on:** I can describe the path end to end, I can name both signals with their blind spots, and both endpoint shapes are written down. Done.
+
+### Milestone 2: Write your acceptance criteria
+
+**The idea:** An acceptance criterion says what "working" means, specifically enough that someone else could check it. "The detector is accurate" is an opinion. "Of 10 pieces I wrote myself, at most 1 is labelled high-confidence AI" is a criterion, because it names a number. The criteria are written before building, so that next unit I find out how I did against a standard I set when I couldn't know the answer.
+
+**Where the answers went:** The criteria and their reasons are in [criteria.md](criteria.md). The README has no section for this milestone, so nothing was added there.
+
+**The five criteria, at a glance**
+
+| # | Criterion | Area | Target |
+| --- | --- | --- | --- |
+| 1 | Few of my own pieces get accused of being AI | False positives | At most 1 of 10 own pieces (3+ deliberately plain) labelled high-confidence AI, in every trial |
+| 2 | Clearly-AI and clearly-human text score far apart | Score spread | Mean `confidence` gap of at least 0.30, and 4 of 5 per group on the right side of 0.50, in every trial |
+| 3 | All three labels are reachable and always real | Label coverage | Each label appears at least once in every trial, 3 of 4 borderline inputs get "unsure", and 100% of labels are one of the three written sentences |
+| 4 | An appeal always changes status and is always recorded | Appeal path | 10 of 10 appeals return 200 and `under_review` with a log entry, original entry unchanged. 5 of 5 unknown ids return 404 with no entry |
+| 5 | Bad input is refused cleanly, never crashes | Bad input | 8 of 8 malformed requests get a JSON 4xx, 0 return a 500, `/ping` still answers, and 8 rejection entries are logged |
+
+This covers all five areas in the brief, where the brief only asks for three. Criterion 1 is the one the others hang off, because it is where the false-positive decision from Milestone 1 becomes a number.
+
+**How the criteria were designed (the concepts worth keeping)**
+
+- **A criterion is a test someone else could run.** Each one names a count, a threshold, a status code or a log entry. If I couldn't say how to check it, it wasn't ready. Vague words like "well" or "accurate" are how a criterion ends up unmeasurable.
+- **Pick the number from the cost of being wrong, not from what is easy to hit.** A wrong accusation costs one person their standing, and a missed AI piece costs the site little. So criterion 1 is the strictest, and it is deliberately not zero, because zero could only be met by labelling everything "unsure". Each reason in `criteria.md` says why that number and not the one either side of it.
+- **Targets must hold in every trial, not on average.** The first signal runs a model, so the same input can score differently twice. Every target is written as a rule for each of the three trials. Criteria 4 and 5 involve no model, so they target every case rather than most.
+- **Build the test set to be hard, not flattering.** Criterion 1 requires plain pieces because plain writing is the known weak spot from Milestone 1. A set of polished prose would pass without proving anything.
+- **Set the target before seeing results, and never edit it afterwards.** The git history is the evidence. If I miss a target next unit, I diagnose it and try a fix. I don't lower the number. A revision is only allowed when a criterion turns out to be unmeasurable, and then it goes underneath the original.
+- **Criteria connect back to the design.** Criterion 3 requires most borderline inputs to land in "unsure" because Milestone 1's design relies on a wide unsure band to protect real writers. Criterion 5 matches the error codes in the Milestone 1 contract.
+
+**The test sets**
+
+The criteria need something to run against, so the inputs were written now, before any score exists. They live in [scenarios.py](scenarios.py), which `run_eval.py` runs three times in unit 8.
+
+| Set | Size | Used by | What it is |
+| --- | --- | --- | --- |
+| My own writing | 10 | Criterion 1 | 7 expressive pieces and 3 deliberately plain ones (short sentences, common words) |
+| Clearly AI | 5 | Criteria 2, 3, 4 | Generic, evenly paced, stock phrases like "in today's fast-paced world" |
+| Clearly human | 5 | Criteria 2, 3, 4 | Specific, uneven in length, with a detail only one person would write |
+| Borderline | 4 | Criterion 3 | Ambiguous in four different ways: lightly edited AI, formal human prose, plain generic first-person, and AI structure around a personal claim |
+| Label coverage | 12 | Criterion 3 | 4 clearly AI, 4 clearly human, 4 borderline, in a fixed order so each trial can be read straight off |
+| Appeal path | 10 + 5 | Criterion 4 | The clearly-AI and clearly-human texts are submitted and then appealed; 5 more appeals use ids that were never issued |
+| Bad input | 8 | Criterion 5 | Missing text, empty, whitespace only, null, a number, missing `creator_id`, a bare JSON list, and 50,000 words |
+
+**Important: who wrote this text.** Claude drafted all of it as stand-ins, so none of it was written by me. That matters differently for each set:
+
+- The *clearly AI* pieces are fine, because they really are AI-written.
+- The *my own writing*, *clearly human* and *borderline* pieces are **not** mine. An AI imitating human writing is the weakest possible test of an AI detector, and criterion 1 literally says "pieces I wrote myself". Before the unit 8 results count as evidence for criteria 1, 2 and 3, I need to replace those sets with real writing of my own. The banner at the top of `scenarios.py` says the same.
+- This should also be recorded honestly under *How I Used AI* in the README when I write it.
+
+**Things to watch for later**
+
+- Criterion 3's "all three labels reachable" depends on the style signal actually varying. While `style_signal` is still the 0.5 stub, the combined score can't leave 0.25 to 0.75 (a note in `config.py` explains this).
+- Until `/submit` and `/appeal` are built (Milestones 3 to 5), the harness can only report misses against the real service. That is correct, and it is the reason the harness is tested against a stand-in service (below).
+- The pieces' "clearly" and "borderline" labels were decided before any score existed. If a score later disagrees with my judgement, the criterion stays as written and the disagreement gets diagnosed, not edited away.
+
+**Making every criterion testable: the harness**
+
+A criterion is only testable if running it produces a yes or no. Two files do that, and a third proves they are right.
+
+- **[scenarios.py](scenarios.py)** holds, for each criterion, the inputs *and* a `check` function. The check turns the target from `criteria.md` into code, such as "at most 1 of 10 labelled AI", and returns a yes/no plus the numbers behind it. Targets are copied exactly. Nothing is loosened to get a pass.
+- **[run_eval.py](run_eval.py)** is the runner. It runs each scenario three times against the live service and prints `target met: yes/no` per trial and whether it *held in all three*. I extended it for two criteria the starter couldn't test:
+  - **Criterion 4 (appeals)** needs a submission, then an appeal quoting the `content_id` that came back. The runner reads `/log` before and after the appeal and compares the two, which is how "the original decision is unchanged" and "the appeal was appended after it" become checkable facts. It then appeals ids that don't exist and confirms they are refused and leave no trace.
+  - **Criterion 5 (bad input)** needs to send things that aren't normal text, including a body that is a bare list. After the batch it calls `/ping` to prove the service survived, and counts the new rejection entries in the log.
+- **[test_eval_harness.py](test_eval_harness.py)** tests the measuring tool itself, so I can trust a "met". It needs no model and no running service. Run it with `python test_eval_harness.py`.
+
+**How the harness was tested (the concepts worth keeping)**
+
+- **Test the tester.** A check that wrongly says "met" is worse than no check, because it hides a failure. So each check is tested directly at its edges: exactly at the limit (passes), one past it (fails). Bugs live at boundaries.
+- **Prove it can fail.** The harness is run against a small *stand-in service* that follows the Milestone 1 contract. With the stand-in behaving, all five criteria must read "met". Then it is made to misbehave one way at a time (accuse a writer, rewrite the log instead of appending, skip logging rejections, return a 500) and the matching criterion must read "missed". A harness that can't fail proves nothing.
+- **A crash is a miss, never a pass.** If a request dies, a field is missing, or a check itself raises, the result is "missed" with the reason attached. Silence must never read as success.
+- **The harness measures; it doesn't judge.** The report's Verdict column stays blank. Meeting a target is a measurement. The verdict is a judgement made after diagnosing why.
+- **Keep tests from leaving mess.** Reports from the tests go to a throwaway folder, so the repo's `results/` stays reserved for real evidence.
+
+**Results of that testing:** 36 tests pass (`python test_eval_harness.py`). I also ran the real harness against the unbuilt starter service as a smoke test. It finished without crashing and reported "target met: NO" for all five criteria, which is the correct starting position. That run also showed that the starter's placeholder `/submit` returns a 500, not a clean error, on a null, numeric or list `text`, which is exactly what the bad-input criterion is there to catch once I build the real route.
+
+**Terms from this milestone**
+
+| Term | What it means |
+| --- | --- |
+| **Acceptance criterion** | A statement of what "working" means, specific enough that someone else could check it. It names a number or something plainly observable. |
+| **False positive** | A real person's writing labelled AI. The costly error on a writing site. |
+| **False negative** | AI text labelled human. The cheaper error here. |
+| **Trial** | One full run of a test set. The model can score the same input differently twice, so each criterion has to hold in all three trials. |
+| **Test set** | The fixed collection of inputs a criterion is checked against. It is chosen before results exist. |
+| **Borderline** | Text that honestly could be either. Where the "unsure" label is supposed to catch it. |
+| **Score spread** | How far apart the scores of clearly-different inputs land. Little spread means the score isn't telling anything apart. |
+| **Label coverage** | Whether every label can actually be produced by some input. |
+| **Harness** | The program that runs the tests: it sends the inputs, collects the responses, and applies each criterion's check. |
+| **Stand-in service (a fake)** | A small imitation of the real service that behaves predictably, used to prove the harness works before the real service exists. |
+| **Boundary testing** | Testing exactly at and just beyond a limit (such as 1 versus 2 accused writers), because mistakes cluster at edges. |
+| **Revision vs. lowering a target** | A criterion can be revised if it turned out to be unmeasurable. Lowering a number because it was missed is not a revision, and is not allowed. |
+
+**Before moving on:** `criteria.md` has 5 numbered criteria, each names a number or an observable outcome, and each has a reason underneath. Done.
 
 ---
 
