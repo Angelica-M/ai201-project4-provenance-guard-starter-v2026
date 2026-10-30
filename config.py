@@ -59,8 +59,34 @@ MAX_TEXT_CHARS = 20_000
 # down BEFORE you code it, and to put the numbers in your README. Whatever you
 # decide, it goes here.
 
+#
+# The rule itself is in scoring.py::combine_signals and is written out in words
+# in the README. It has two parts, and every number in it is here:
+#
+#   1. A weighted average of the two scores. Equal weights, because each signal
+#      was shown on its own to separate clearly-AI from clearly-human text and
+#      neither was reliably the better one when they split (see the README).
+#      Only the proportions matter; they are divided by their sum.
+#   2. A disagreement rule. Two signals far apart is itself evidence of
+#      uncertainty, so the average is pulled toward 0.5 (the middle of "unsure")
+#      the further apart they are.
+
 WEIGHT_MODEL_SIGNAL = 0.5
 WEIGHT_STYLE_SIGNAL = 0.5
+
+# Signals closer together than this are treated as agreeing, and the average is
+# left alone. Chosen so ordinary noise doesn't trigger the rule: in the 24 test
+# texts most pairs sit under 0.30 apart, and only the three widest split by more.
+DISAGREEMENT_START = 0.30
+
+# At this gap or wider, the pull is at its maximum. Between START and FULL the
+# pull grows in a straight line.
+DISAGREEMENT_FULL = 0.70
+
+# The most the average is ever pulled toward 0.5: 0.5 means "halfway there".
+# Not 1.0, because two signals that disagree still know something; they just
+# shouldn't be allowed to produce a confident answer.
+DISAGREEMENT_MAX_PULL = 0.5
 
 
 # ─── Thresholds (Milestone 5) ────────────────────────────────────────────────

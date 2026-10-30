@@ -49,14 +49,52 @@ def combine_signals(model_score: float, style_score: float) -> float:
       - Milestone 4 asks you to find a case where your two signals split and
         write it down. That case is what this rule exists to handle.
 
-    The weights in config.py are placeholders. Change them, or ignore them and
-    write a different rule.
+    ── THE RULE (Milestone 4) ──────────────────────────────────────────────────
+    Written down before it was coded. The same wording is in the README.
+
+      1. Average the two scores, weighted by config.WEIGHT_MODEL_SIGNAL and
+         config.WEIGHT_STYLE_SIGNAL (0.5 each).
+      2. Look at how far apart the two scores are.
+           - Under config.DISAGREEMENT_START (0.30) apart: they agree, so the
+             average is the answer.
+           - Wider than that: they disagree, and disagreement is evidence of
+             uncertainty. Move the average toward 0.5 by a fraction that grows
+             in a straight line with the gap, from 0 at 0.30 apart up to
+             config.DISAGREEMENT_MAX_PULL (half the way) at 0.70 apart or more.
+
+    Worked example, the funeral piece from the README: model 0.127, style 0.632.
+    Average 0.380. Gap 0.505, so the pull is (0.505 - 0.30) / (0.70 - 0.30) *
+    0.5 = 0.256. Moved 25.6% of the way from 0.380 toward 0.5: 0.411.
+
+    What it deliberately does NOT do: it can't rescue a writer when both
+    signals agree and are both wrong. Plain, short-sentence writing scores high
+    on both, so the average is high and nothing here changes that. That
+    protection lives in the label thresholds (Milestone 5), not here.
+
+    The pull works in both directions. A disagreeing pair that averages below
+    0.5 is pulled UP toward "unsure" too, which makes a confident "human" label
+    slightly harder to earn. That is the intended trade: when two methods
+    disagree, neither answer should be stated confidently.
     """
-    # TODO: replace this
-    return (
-        config.WEIGHT_MODEL_SIGNAL * model_score
-        + config.WEIGHT_STYLE_SIGNAL * style_score
-    )
+    # Squeeze inputs into 0..1 so one bad value can't push the result outside it.
+    model_score = min(max(model_score, 0.0), 1.0)
+    style_score = min(max(style_score, 0.0), 1.0)
+
+    # Step 1: the weighted average. Dividing by the weights' sum means they
+    # don't have to add to 1; only their proportions matter.
+    w_model, w_style = config.WEIGHT_MODEL_SIGNAL, config.WEIGHT_STYLE_SIGNAL
+    average = (w_model * model_score + w_style * style_score) / (w_model + w_style)
+
+    # Step 2: how much to distrust the average. `ramp` goes from 0 (they agree)
+    # to 1 (they disagree as much as we ever act on), in a straight line.
+    gap = abs(model_score - style_score)
+    span = config.DISAGREEMENT_FULL - config.DISAGREEMENT_START
+    ramp = min(max((gap - config.DISAGREEMENT_START) / span, 0.0), 1.0)
+    pull = ramp * config.DISAGREEMENT_MAX_PULL
+
+    # Slide the average `pull` of the way toward 0.5 ("we can't tell").
+    combined = average + pull * (0.5 - average)
+    return round(min(max(combined, 0.0), 1.0), 4)
 
 
 def score_to_label(score: float) -> tuple[str, str]:

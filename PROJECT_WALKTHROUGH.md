@@ -571,6 +571,39 @@ This is the case the combining rule has to handle, and it is written up in the R
 
 No code changed in this step. The README's split-case section was started, and its last sentence is completed in Step 3.
 
+**Step 3. Write the combining rule in `scoring.py::combine_signals`**
+
+The brief says to write the rule down *before* coding it. That ordering matters because a rule written after the code just describes whatever the code happened to do. The rule was written in plain words first (now in the README under *The combining rule*), then coded to match.
+
+**The rule, in two steps:**
+
+1. **Average the two scores**, equal weights (0.5 and 0.5).
+2. **Check whether they agree.** Less than 0.30 apart: the average is the answer. Further apart: move the average toward 0.5 ("unsure"), by an amount that grows in a straight line from nothing at a 0.30 gap to half the distance at a 0.70 gap or more.
+
+A worked example, the funeral piece from Step 2: model 0.127, style 0.632. The average is 0.380 and the gap is 0.505, so the pull is (0.505 − 0.30) / (0.70 − 0.30) × 0.5 = 0.256. The average moves about a quarter of the way toward 0.5, landing at **0.411**.
+
+**Options that were considered, and why this one:**
+
+| Option | Why not |
+| --- | --- |
+| Plain average, nothing else | Simple, but it hides disagreement: 0.9 and 0.1 average to 0.5, the same as two signals that both said 0.5. Two methods *disagreeing* is not the same evidence as two methods *both being unsure*. |
+| Trust one signal more (unequal weights) | There is no evidence for it. In Step 2 each signal was right where the other was wrong, once each. Picking a favourite would be a guess dressed up as a decision. |
+| Take the lower score ("both must agree it's AI") | Protects writers well, but it throws away information whenever the signals differ even slightly, and with one signal blind to plain writing the lower score still isn't low enough for plain writers. |
+| Average, then pull toward "unsure" when they disagree (**chosen**) | Uses all the information. Agreement is trusted. Disagreement lowers confidence in proportion to how big it is, and never raises it. |
+
+**Properties the rule has, on purpose:**
+
+- It can never move a score *away* from 0.5. Disagreement can only make the answer less confident, never more. This is tested across a grid of score pairs.
+- It is symmetric (swapping the two signals changes nothing when weights are equal) and monotonic (raising either signal never lowers the result).
+- Every number lives in [config.py](config.py), none is buried in the function, and `DISAGREEMENT_MAX_PULL = 0` turns the rule off for a plain average. Weights are treated as proportions, so they don't have to add up to 1.
+- It works in both directions: a disagreeing pair that averages *low* is nudged *up* toward "unsure" too. That makes a confident "human" label slightly harder to earn. It is a real cost, accepted because when two methods disagree neither answer should be stated confidently.
+
+**What the rule cannot do, written down so it isn't credited with more than it does:** it can't rescue a writer when both signals agree and are both wrong. Plain writing scores high on both, so the average is high, and no way of combining the two numbers fixes numbers that are wrong in the same direction. That protection has to come from the label thresholds in Milestone 5.
+
+**How it was tested:** [test_scoring.py](test_scoring.py), 19 tests, no model needed. It checks hand-worked values (including the funeral example), the edges (exactly at the 0.30 switch-on, at the cap, a pair that averages exactly 0.5), and properties that must hold for *any* pair of scores, swept across a 21 × 21 grid: stays in 0 to 1, symmetric, never moves away from 0.5, monotonic. It also tests that weights act as proportions and that the rule can be switched off. One test of mine was wrong the first time (it expected the wrong value because I forgot a 0.4 gap switches the rule on) and one was vacuous (it compared a call with itself). Both were caught on review and rewritten, which is a reason to read tests, not just run them.
+
+README sections completed here: *The rule*, *The numbers*, *A case where my two signals split, and what my rule does with it*, and the description of signal two (corrected to say only one of its three measures carries weight).
+
 ---
 
 ## Features

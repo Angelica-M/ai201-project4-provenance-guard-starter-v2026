@@ -122,10 +122,17 @@ the least room to argue back.
 ### Signal two — the style signal
 
 **What it measures:** The shape of the text, without understanding any of it
-(`stylometry.py`, which I build in Milestone 4). Three things: how much
-sentence length varies, how varied the vocabulary is (unique words over total
-words), and how much punctuation there is and of what kind. Each is turned into
-a 0 to 1 piece and combined into one score where higher means more likely AI.
+(`stylometry.py`). Three things are measured: how much sentence length varies
+(the standard deviation of sentence lengths divided by their mean), how varied
+the vocabulary is (unique words over total words, over the first 100 words),
+and how much punctuation there is (marks per word). Each is scaled to a 0 to 1
+score and combined into one score where higher means more likely AI. **In
+practice only the first carries weight.** On my 24 test texts, sentence-length
+spread separated AI from human well (AI 0.09 to 0.19, human 0.41 to 0.99), but
+vocabulary variety did not (the AI texts scored slightly higher, 0.81 to 0.90
+against 0.77 to 0.92) and punctuation density did not (both 0.06 to 0.11). The
+other two are still measured and reported but have weight 0, and one line in
+`stylometry.py` raises a weight if longer texts show they matter.
 
 **Why that might differ between human and AI writing:** Generated prose tends
 toward even, mid-length sentences and a narrower band of vocabulary, because
@@ -146,9 +153,48 @@ looks like a machine to it.
 <!-- Write the rule in words, then give the numbers. What happens when the two
      signals disagree? -->
 
-**The rule:**
+**The rule:** Each signal gives a score from 0 (human) to 1 (AI). The rule
+works in two steps.
 
-**The numbers:**
+1. **Average the two scores.** Each signal counts equally. Both were shown on
+   their own to separate clearly-AI text from clearly-human text, and neither
+   was reliably the better one when they split, so I have no evidence to
+   trust one more.
+2. **Check whether they agree.** If the two scores are less than 0.30 apart,
+   they agree, and the average is the answer. If they are further apart, the
+   signals are disagreeing, and two methods disagreeing *is* uncertainty. So
+   the average is moved toward 0.5 (the middle of "unsure"). The further apart
+   they are, the further it moves, starting at nothing at 0.30 apart and
+   reaching half the distance to 0.5 at 0.70 apart or more.
+
+In plain terms: when the signals agree, trust them. When they disagree, don't
+let either one produce a confident answer. The rule works both ways, so a
+disagreeing pair that averages low is also nudged up toward "unsure", which
+makes a confident "human" label slightly harder to earn too. That is the
+price of being cautious about disagreement.
+
+**What the rule cannot do:** rescue a writer when *both* signals agree and are
+both wrong. Plain writing in short, simple sentences scores high on both
+signals (model 0.84 to 0.86, style 0.69 to 0.81 on my three plain test pieces),
+so their average is high and no rule for combining the numbers can change
+that. That protection has to come from where the label thresholds sit, not
+from this rule. I name the limit here so the rule isn't credited with something
+it doesn't do.
+
+**The numbers:** All in `config.py`.
+
+| Setting | Value | Meaning |
+|---|---|---|
+| `WEIGHT_MODEL_SIGNAL` | 0.5 | Share of the average from the model signal |
+| `WEIGHT_STYLE_SIGNAL` | 0.5 | Share of the average from the style signal |
+| `DISAGREEMENT_START` | 0.30 | Gap below which the signals count as agreeing |
+| `DISAGREEMENT_FULL` | 0.70 | Gap at which the pull reaches its maximum |
+| `DISAGREEMENT_MAX_PULL` | 0.5 | The most the average is moved toward 0.5 (half the way) |
+
+Why these values: 0.30 so ordinary noise doesn't trigger the rule (in my 24
+test texts only a few pairs are further apart than that), and a maximum pull
+of one half and not all the way because two signals that disagree still know
+something. They just shouldn't be allowed to produce a confident answer.
 
 **Where it lives:** `scoring.py::combine_signals`
 
@@ -174,7 +220,16 @@ signal scores it **0.000**, as human as possible, while the model signal sits
 on the fence at **0.540**. Neither signal is reliably the better one, so
 neither can simply be trusted when they split.
 
-*What my rule does with it.* (The rule is written in the next step.)
+*What my rule does with it.* The two scores are 0.505 apart, past the 0.30
+point where the rule switches on. Their average is 0.380. The pull is
+(0.505 - 0.30) / (0.70 - 0.30) x 0.5 = 0.256, so the average moves about a
+quarter of the way toward 0.5, to **0.411**. Without the rule the piece would
+read as a fairly confident human (0.380). With it, it lands closer to
+"unsure", which fits the facts: one method said very human and the other said
+leaning AI. For the cracked-pavement piece (model 0.540, style 0.000), the
+average of 0.270 moves to about 0.339. The rule is mild on these two, and its
+bigger job is next unit, when edited AI text is likely to split the two
+signals.
 
 
 
