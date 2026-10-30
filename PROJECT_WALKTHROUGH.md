@@ -383,6 +383,32 @@ Why do it this way: it separates two kinds of failure. If `curl` gets the hardco
 
 How it was checked: `/ping` and `/submit` both answered `200` with JSON (see the README's Sample Run for the final version).
 
+**Step 2. Run the first signal on its own**
+
+Before wiring a signal into the route, run it from a terminal (`python detector.py "some writing here"`) on text whose answer is known. If a number looks wrong here, the signal is at fault. If it only looks wrong later, the wiring is. The first run downloads about 550 MB (the gpt2 model).
+
+Real output, three inputs chosen before running (the text is from `scenarios.py`):
+
+| Input | Perplexity | `model_signal` (higher = more likely AI) | Reading |
+| --- | --- | --- | --- |
+| Clearly AI ("In today's fast-paced digital landscape, effective communication...") | 19.4 | **0.7941** | Leans AI, as expected |
+| Clearly human (the sourdough piece, "Mine's called Gerald") | 95.7 | **0.2301** | Leans human, as expected |
+| In between (lightly casual city-life paragraph) | 32.4 | **0.6285** | Between the two, but closer to AI than human |
+
+So the signal does separate obviously different text, and the in-between case lands in the middle. Perplexity is the raw "how surprised was the model" number. `model_signal` squashes it onto 0 to 1 (a logistic curve centred on perplexity 45), which is why 19.4 maps to 0.79 and 95.7 to 0.23.
+
+**An extra check, and the most important finding so far.** Milestone 1 predicted this signal would call plain human writing machine-like. I ran the three deliberately plain pieces (short sentences, common words) to test that:
+
+| Plain piece (drafted as a stand-in for a second-language or younger writer) | Perplexity | `model_signal` |
+| --- | --- | --- |
+| "I came to this country four years ago..." | 16.1 | **0.8385** |
+| "My school is near my house..." | 14.8 | **0.8560** |
+| "Last weekend I went to the lake..." | 15.5 | **0.8459** |
+
+All three score *higher* than the clearly-AI paragraph (0.79). The prediction was right, and it was worse than expected: for this signal alone, plain writing is more machine-like than machine writing. That is the false-positive case from Milestone 1, now measured instead of estimated. It is why the second signal and the careful thresholds matter, and why criterion 1 includes plain pieces. (Caveat: those three pieces were drafted by Claude as stand-ins, not written by me, but the pattern is the point and matches the documented behaviour of the detector.)
+
+No code changed in this step. The result was recorded here.
+
 ---
 
 ## Features
