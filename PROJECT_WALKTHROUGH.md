@@ -492,6 +492,50 @@ Extra checks that weren't in the steps: a text over 20,000 characters returns `4
 
 **If it gets stuck** (the starter's advice, kept for reference): if the route isn't responding after about 40 minutes, go back to `/ping`. If `/ping` answers, the problem is in the handler. If it doesn't, it's the service itself. On Windows, check `curl.exe` is being used on one line before blaming the code. If the signal isn't working after about 40 minutes, make it return a fixed number with a comment saying so and move on, since Milestones 4 and 5 are the graded part.
 
+### Milestone 4: Add the second signal and score confidence
+
+**The idea:** The pipeline becomes multi-signal, and two numbers have to become one. This is the milestone people rush. The scoring function is where the false-positive decision from Milestone 1 actually gets made, and a careless one undoes everything built on top of it.
+
+**Where the answers went:** The code is in [stylometry.py](stylometry.py) (signal two), [scoring.py](scoring.py) (`combine_signals`) and [config.py](config.py) (weights and thresholds). The README's *Signals and Scoring* section holds the combining rule and the split case. Each step below was committed on its own.
+
+**Step 1. Build the second signal in `stylometry.py`**
+
+What it does: turns a piece of writing into one number from 0 to 1, higher meaning more likely AI (the same direction as signal one). It measures the *shape* of the text without understanding a word, in three stages:
+
+1. **Measure** three plain properties.
+2. **Scale** each onto 0 to 1 ("AI-ness"). Raw numbers live on different scales (a ratio, a count), so adding them as they are would let whichever has the bigger numbers win by default.
+3. **Combine** them as a weighted average.
+
+| Measure | What it counts | Which way is "more human" |
+| --- | --- | --- |
+| Sentence length spread | Standard deviation of sentence lengths divided by their mean (a *coefficient of variation*; dividing by the mean makes long and short texts comparable) | Higher spread (lumpier) |
+| Type-token ratio | Unique words over total words, over the first 100 words only | Higher (more varied vocabulary) |
+| Punctuation density | Marks per word (commas, semicolons, colons, dashes, quotes, brackets, `?`, `!`, ellipses; not single full stops or apostrophes) | Higher |
+
+**The finding: only one of the three measures works.** Before choosing weights, the raw values were computed for all 24 test texts. This is what came back:
+
+| Measure | Clearly AI | Clearly human | Verdict |
+| --- | --- | --- | --- |
+| Sentence spread | 0.09 to 0.19 | 0.41 to 0.99 | **Separates well** |
+| Type-token ratio | 0.81 to 0.90 | 0.77 to 0.92 | **Doesn't separate, and runs the wrong way.** The AI texts scored slightly *higher*, so the idea that AI uses a narrower vocabulary didn't show up at this length. |
+| Punctuation density | 0.06 to 0.11 | 0.06 to 0.11 | **Doesn't separate.** The ranges overlap completely, and rare marks like semicolons are almost absent from texts this short. |
+
+So the style score is built from the one measure that earns it. The other two are still computed, tested and printed in the terminal, but carry weight 0 in `WEIGHTS`. They were kept instead of deleted so the numbers stay visible, and so a weight can be raised in one line if longer texts show they matter. Orienting a measure the way the hypothesis says when the data says the opposite would add noise on purpose, so it wasn't done. This matches the milestone's own advice: *a signal that doesn't discriminate is a real finding, not something to hide.*
+
+What this costs: with one measure carrying the whole score, the blind spot is sharper. Chopping AI text into sentences of different lengths moves the score a long way. That is exactly what next unit's attack set is built from.
+
+Edge cases decided on purpose:
+
+- **One sentence:** there is no spread to measure, and `statistics.stdev` raises on fewer than two values. The measure returns `0.0`, but `style_signal` doesn't read that as "perfectly even" (which would accuse every one-liner). It treats a single sentence as *no information* and returns a neutral `0.5`.
+- **Empty text:** every measure returns `0.0` safely, and the style score is a neutral `0.5`.
+- **Type-token ratio and length:** the ratio falls as text gets longer because common words repeat. Only the first 100 words are used, so a short text and a long one are compared fairly.
+
+How it was checked:
+
+- `python stylometry.py "some text"` prints every raw number, its scaled value and its weight. Run by itself, before anything depends on it.
+- `python test_stylometry.py` runs 23 tests. They cover hand-worked values, the awkward inputs, a score that always stays between 0 and 1, and the direction (even sentences must score *higher*, more AI-like, than lumpy ones; a flipped direction would make everything above it wrong in a way that's hard to see).
+- Scores on the test sets: clearly AI 0.94 to 1.00; clearly human 0.00 to 0.63; plain pieces 0.69 to 0.81; borderline 0.58 to 0.76. Notice that the plain pieces land well above the human ones. That is the same weak spot signal one has, and Step 2 deals with it.
+
 ---
 
 ## Features
