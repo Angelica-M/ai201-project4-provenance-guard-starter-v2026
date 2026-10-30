@@ -452,6 +452,46 @@ Decisions worth understanding:
 
 How it was checked: one good submission and two bad ones were sent, then `logs/audit.jsonl` was read directly. The good one wrote a `decided` entry with a real `model_score`. Each bad one wrote a `rejected` entry with the reason `invalid_input` and the right creator.
 
+**Step 5. Check it worked, and paste the evidence**
+
+`GET /log` already works in the starter and returns the recent log entries as JSON, so it wasn't built. It was used to see whether the log entries were actually landing. That is the whole point of this step: don't assume the write worked, read it back through a different route.
+
+What was done:
+
+1. The test entries from step 4 were cleared, so the evidence starts clean.
+2. Two submissions (one AI-style, one specific and odd, from two different writers) and one refused request (empty text) were sent with `curl.exe`.
+3. `GET /log?limit=3` returned all three, in order: two `decided` entries and one `rejected`.
+4. The requests and responses were pasted, as text, into the README under *Sample Run* (a screenshot would get no credit). The appeal block there is left marked "not built yet", because `POST /appeal` is Milestone 5.
+5. `logs/audit.jsonl` was committed. The starter deliberately doesn't ignore `logs/`, because the log is evidence.
+
+What the evidence shows:
+
+| Check | Result |
+| --- | --- |
+| `/submit` returns a `content_id` and a real signal result | Yes, `model_score` 0.8394 and 0.3881 for the two texts |
+| Every call writes an entry to `logs/audit.jsonl` | Yes, three calls and three lines |
+| `GET /log` shows them | Yes, `count: 3`, and `/health` agrees (`log_entries: 3`, `detector_loaded: true`) |
+| The signal moves with the text | Yes, the AI-style text scored far higher than the specific, odd one |
+
+Extra checks that weren't in the steps: a text over 20,000 characters returns `413`, a number for `text` and a non-JSON body each return `400`, and all three were logged as rejections (run in-process with the log redirected to a temp folder, so the sample-run log wasn't touched). The 36 harness tests still pass, so the evaluation tooling wasn't disturbed.
+
+**Milestone 3 summary: what is true now**
+
+- `POST /submit` returns JSON with a `content_id` and a real signal result. `confidence`, `guess` and `label` are placeholders by design.
+- Every call, good or refused, writes an entry to `logs/audit.jsonl`. `GET /log` shows them.
+- What is still missing, on purpose: the style signal and `style_score` (Milestone 4), the combining rule and a real `confidence` (Milestone 4), the labels (Milestone 5), and `POST /appeal` (Milestone 5).
+
+**What this milestone taught**
+
+- **Build in an order that tells you which part is broken.** Hardcoded route, then the signal alone, then the two joined. At each step only one new thing could be wrong.
+- **Run a component by itself before wiring it in.** Step 2 produced a real finding (plain human writing scores more machine-like than machine writing) before any route code depended on the signal.
+- **Check by reading back through a different path.** The log was written by `submit()` and verified through `GET /log` and the file itself. That caught a real bug, a wrong creator on a refusal, that a response alone wouldn't have shown.
+- **Prefer honest blanks to invented values.** Placeholders are labelled as placeholders, and missing fields are `null`.
+
+**Before moving on:** `POST /submit` returns JSON with a `content_id` and a real signal result. Every call writes an entry to `logs/audit.jsonl`. `GET /log` shows them. Done.
+
+**If it gets stuck** (the starter's advice, kept for reference): if the route isn't responding after about 40 minutes, go back to `/ping`. If `/ping` answers, the problem is in the handler. If it doesn't, it's the service itself. On Windows, check `curl.exe` is being used on one line before blaming the code. If the signal isn't working after about 40 minutes, make it return a fixed number with a comment saying so and move on, since Milestones 4 and 5 are the graded part.
+
 ---
 
 ## Features

@@ -195,17 +195,65 @@ looks like a machine to it.
      two off the response, so leaving them out costs you next unit's
      diagnostics. -->
 
+> **Where the build is up to (Milestone 3).** `/submit` runs signal one only, so
+> the response has `model_score` but no `style_score` yet, and `confidence`,
+> `guess` and `label` are placeholders. Milestone 4 adds the second signal and
+> the real score, and Milestone 5 the real label. This section is re-pasted at
+> the end of those milestones. The commands below were run with `curl.exe` on one
+> line (Windows PowerShell) on port 5001, because port 5000 was in use on my
+> machine. On a free machine, use 5000.
+
+A normal submission. The text is AI-style prose, and signal one leans AI:
+
 ```bash
-$ curl -X POST http://127.0.0.1:5000/submit \
-  -H "Content-Type: application/json" \
-  -d '{"text": "...", "creator_id": "..."}'
+$ curl.exe -X POST http://127.0.0.1:5001/submit -H "Content-Type: application/json" -d '{\"text\": \"Time management is a crucial skill that can significantly impact both personal and professional success. By setting clear goals, prioritizing tasks, and minimizing distractions, individuals can make the most of their available time.\", \"creator_id\": \"writer_ana\"}'
 ```
 
 ```json
+{
+  "confidence": 0.5,
+  "content_id": "2d9b8152-242b-4b5f-9e05-186b02beb170",
+  "guess": "unsure",
+  "label": "PLACEHOLDER: the real label arrives in Milestone 5.",
+  "model_score": 0.8394
+}
+```
 
+A second submission, from a different writer. This text is specific and a bit
+odd, and signal one leans human (0.3881, against 0.8394 above), so the signal
+does move with the text:
+
+```bash
+$ curl.exe -X POST http://127.0.0.1:5001/submit -H "Content-Type: application/json" -d '{\"text\": \"The ferry smelled of diesel and wet dog. Tomasz, who had not spoken since Calais, suddenly asked whether I thought gulls ever got bored. I said no. He said that was a shame, because he was, terribly, and then he laughed so hard he had to sit down on a coil of rope.\", \"creator_id\": \"writer_ben\"}'
+```
+
+```json
+{
+  "confidence": 0.5,
+  "content_id": "eb40dbdf-2693-4cac-b67a-272a85662ee2",
+  "guess": "unsure",
+  "label": "PLACEHOLDER: the real label arrives in Milestone 5.",
+  "model_score": 0.3881
+}
+```
+
+A request the service refuses (empty text). It gets a clear 400 and is also
+written to the log:
+
+```bash
+$ curl.exe -X POST http://127.0.0.1:5001/submit -H "Content-Type: application/json" -d '{\"text\": \"\", \"creator_id\": \"writer_ben\"}'
+```
+
+```json
+{
+  "error": "invalid_input",
+  "message": "text must be a non-empty string."
+}
 ```
 
 **An appeal**
+
+> Not built yet. `POST /appeal` is Milestone 5, so this block is filled in then.
 
 ```bash
 $ curl -X POST http://127.0.0.1:5000/appeal \
@@ -219,12 +267,50 @@ $ curl -X POST http://127.0.0.1:5000/appeal \
 
 **What the log shows afterwards**
 
+All three requests above, read back from the audit log (`logs/audit.jsonl`).
+The two decisions are there, with `style_score`, `combined_score` and `label`
+left as `null` because those don't exist yet, and the refusal is there too,
+attributed to the writer who sent it:
+
 ```bash
-$ curl "http://127.0.0.1:5000/log?limit=3"
+$ curl.exe "http://127.0.0.1:5001/log?limit=3"
 ```
 
 ```json
-
+{
+  "count": 3,
+  "entries": [
+    {
+      "combined_score": null,
+      "content_id": "2d9b8152-242b-4b5f-9e05-186b02beb170",
+      "creator_id": "writer_ana",
+      "guess": "unsure",
+      "label": null,
+      "model_score": 0.8394,
+      "status": "decided",
+      "style_score": null,
+      "timestamp": "2026-10-30T20:07:34+00:00"
+    },
+    {
+      "combined_score": null,
+      "content_id": "eb40dbdf-2693-4cac-b67a-272a85662ee2",
+      "creator_id": "writer_ben",
+      "guess": "unsure",
+      "label": null,
+      "model_score": 0.3881,
+      "status": "decided",
+      "style_score": null,
+      "timestamp": "2026-10-30T20:07:34+00:00"
+    },
+    {
+      "creator_id": "writer_ben",
+      "event": "rejected",
+      "reason": "invalid_input",
+      "status": "rejected",
+      "timestamp": "2026-10-30T20:07:34+00:00"
+    }
+  ]
+}
 ```
 
 ---
