@@ -697,6 +697,39 @@ Honest limits: the margin is thin (0.830 against 0.850 on one side, 0.885 agains
 
 Changed in this step: [config.py](config.py) thresholds (0.35 / 0.65 to 0.40 / 0.85) with the reasoning beside them, and the README label table and wording. The wording was checked against the code's range printout (`scoring.label_ranges()`): `0.00 – 0.40`, `0.40 – 0.85`, `0.85 – 1.00`.
 
+**Step 2. Fill in `score_to_label` and wire it into the response**
+
+What changed:
+
+- [scoring.py](scoring.py): the three label sentences are now constants (`LABEL_HUMAN`, `LABEL_UNSURE`, `LABEL_AI`), and `score_to_label` uses them. It is two comparisons and a fallback: at or above the AI line is "ai", at or below the human line is "human", and everything else is "unsure".
+- [app.py](app.py): `submit()` now calls `score_to_label(combined_score)` and puts the real `guess` and `label` in the response. The log entry now records the label too, as the exact sentence the reader was shown, so the log says what they were *told* and not just what was computed. Every one of the nine log fields is now filled.
+
+Why the order of the checks matters: testing the two outer labels first and letting everything else fall through to "unsure" is what guarantees there is no gap. Every number from 0 to 1 matches exactly one label. A score exactly on a line goes to the outer label (0.85 is "ai", 0.40 is "human").
+
+**Proving all three labels are reachable.** The starter's advice is that if a label can't be reached, the ranges have a gap. The proof has two parts:
+
+1. *By code:* a test sweeps every score from 0.000 to 1.000 in steps of 0.001 and checks that each gets exactly one of the three labels, that all three appear, and that the label never goes "backwards" as the score rises.
+2. *By real submission:* three texts were sent through the running service, one per label:
+
+| Writer | Text | Model | Style | Confidence | Label |
+| --- | --- | --- | --- | --- | --- |
+| writer_ana | AI-style paragraph | 0.8394 | 1.000 | 0.9197 | **ai** |
+| writer_ben | The ferry paragraph | 0.3881 | 0.131 | 0.2596 | **human** |
+| writer_cara | Plain first-person language-learning paragraph | 0.7114 | 0.864 | 0.7877 | **unsure** |
+
+The third row is the one the thresholds exist for. At the old placeholder line of 0.65 that writer would have been told their work looked like AI. At 0.85 they are told "we can't tell", with an explanation that doesn't blame them.
+
+**Tests added** ([test_scoring.py](test_scoring.py) grew from 19 to 34; [test_app.py](test_app.py) is new with 14). The new ones check:
+
+- Every score gets one known label, all three are reachable, labels never go backwards, and boundary scores go to the outer label.
+- The label wording itself: the three texts differ, none is a placeholder, each is a full sentence, none contains a digit or jargon ("threshold", "score", "confidence"), only the AI label mentions appealing, and the unsure label contains no accusing words.
+- **The README shows exactly the text the code returns.** A test reads the README and fails if either label sentence has drifted from the code. The README is the submission, and the grader checks the code against what the README claims, so they must never disagree.
+- Through the real route (with the model replaced by a fixed number, so it needs no download): all fields come back, each label is reachable, the log entry has all nine fields filled, the label in the log equals the label in the response, and all eight bad inputs from criterion 5 get a clean 4xx and a log entry.
+
+*A note on how `test_app.py` stays safe:* every test writes to a throwaway log in a temp folder, never to the real `logs/audit.jsonl`, so running the tests cannot disturb the evidence. Confirmed: the real log still had exactly its four sample entries afterwards.
+
+README: *Sample Run* was rewritten with the three submissions (one per label), the refusal, and the log read-back with real labels. The appeal block is still waiting for step 3.
+
 ---
 
 ## Features

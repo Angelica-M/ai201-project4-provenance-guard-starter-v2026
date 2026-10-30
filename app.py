@@ -281,20 +281,25 @@ def submit():
     #    and without both numbers nothing can answer it.
     combined_score = scoring.combine_signals(model_score, style_score)
 
-    # 6. Decide, and remember the decision. content_id is generated here and
-    #    must go back to the caller: /appeal needs it to find this decision
-    #    again. `confidence` is the combined score. `guess` and `label` are
-    #    still placeholders until Milestone 5 (thresholds and wording), which is
-    #    why they are constants and not derived from the score yet.
+    # 6. Turn the number into words (Milestone 5). `guess` is the short
+    #    machine-readable answer ("ai", "human" or "unsure") and `label` is the
+    #    full sentence a reader sees. Which one a score gets depends only on the
+    #    two thresholds in config.py, so the false-positive decision lives in one
+    #    place and can be changed without touching this route.
+    guess, label = scoring.score_to_label(combined_score)
+
+    # 7. Remember the decision. content_id is generated here and must go back to
+    #    the caller: /appeal needs it to find this decision again.
+    #    `confidence` is the combined score, the number the label was chosen from.
     content_id = str(uuid.uuid4())
-    guess = "unsure"
     confidence = combined_score
 
-    # 7. Write it to the audit log BEFORE answering. If the answer is sent first
+    # 8. Write it to the audit log BEFORE answering. If the answer is sent first
     #    and the write then fails, the caller holds a decision the service has no
-    #    record of, and an appeal against it would find nothing. All three
-    #    numbers go in. The label is the one field left as None on purpose, since
-    #    it doesn't exist yet: an honest blank beats a made-up value.
+    #    record of, and an appeal against it would find nothing. Every field is
+    #    filled now, including the label: it is logged as the exact sentence the
+    #    reader was shown, so the log says what they were told, not just what
+    #    the service computed.
     audit.log_decision(
         content_id=content_id,
         creator_id=creator_id,
@@ -302,15 +307,16 @@ def submit():
         model_score=model_score,
         style_score=style_score,
         combined_score=combined_score,
+        label=label,
         status="decided",
     )
 
-    # 8. Answer.
+    # 9. Answer.
     return jsonify({
         "content_id": content_id,
         "guess": guess,
         "confidence": confidence,
-        "label": "PLACEHOLDER: the real label arrives in Milestone 5.",
+        "label": label,
         "model_score": model_score,
         "style_score": style_score,
     }), 200

@@ -129,6 +129,99 @@ class Properties(unittest.TestCase):
                 previous_a, previous_b = a, b
 
 
+class Labels(unittest.TestCase):
+    """`score_to_label` (Milestone 5): every score gets one reachable label."""
+
+    SWEEP = [i / 1000 for i in range(1001)]     # 0.000, 0.001, ... 1.000
+
+    def test_every_score_gets_exactly_one_known_guess(self):
+        for score in self.SWEEP:
+            guess, label = scoring.score_to_label(score)
+            self.assertIn(guess, ("human", "unsure", "ai"), score)
+            self.assertTrue(label.strip(), score)
+
+    def test_all_three_labels_are_reachable(self):
+        # If a range had a gap or an impossible bound, one of these would be missing.
+        seen = {scoring.score_to_label(s)[0] for s in self.SWEEP}
+        self.assertEqual(seen, {"human", "unsure", "ai"})
+
+    def test_labels_never_go_backwards_as_the_score_rises(self):
+        order = {"human": 0, "unsure": 1, "ai": 2}
+        ranks = [order[scoring.score_to_label(s)[0]] for s in self.SWEEP]
+        self.assertEqual(ranks, sorted(ranks))
+
+    def test_boundaries_go_to_the_outer_label(self):
+        h, a = config.HUMAN_THRESHOLD, config.AI_THRESHOLD
+        self.assertEqual(scoring.score_to_label(h)[0], "human")
+        self.assertEqual(scoring.score_to_label(round(h + 0.0001, 4))[0], "unsure")
+        self.assertEqual(scoring.score_to_label(a)[0], "ai")
+        self.assertEqual(scoring.score_to_label(round(a - 0.0001, 4))[0], "unsure")
+        self.assertEqual(scoring.score_to_label(0.0)[0], "human")
+        self.assertEqual(scoring.score_to_label(1.0)[0], "ai")
+
+    def test_the_lines_are_where_the_readme_says(self):
+        self.assertEqual(config.HUMAN_THRESHOLD, 0.40)
+        self.assertEqual(config.AI_THRESHOLD, 0.85)
+
+    def test_the_two_lines_are_in_the_right_order(self):
+        self.assertLess(config.HUMAN_THRESHOLD, config.AI_THRESHOLD)
+
+    def test_label_ranges_match_config(self):
+        ranges = dict(scoring.label_ranges())
+        self.assertIn(f"{config.HUMAN_THRESHOLD:.2f}", ranges["high-confidence human"])
+        self.assertIn(f"{config.AI_THRESHOLD:.2f}", ranges["high-confidence AI"])
+        self.assertIn(f"{config.HUMAN_THRESHOLD:.2f}", ranges["unsure"])
+        self.assertIn(f"{config.AI_THRESHOLD:.2f}", ranges["unsure"])
+
+
+class LabelWording(unittest.TestCase):
+    """The words a reader sees."""
+
+    LABELS = {"human": scoring.LABEL_HUMAN, "unsure": scoring.LABEL_UNSURE,
+              "ai": scoring.LABEL_AI}
+
+    def test_each_guess_returns_its_own_text(self):
+        self.assertEqual(scoring.score_to_label(0.1), ("human", scoring.LABEL_HUMAN))
+        self.assertEqual(scoring.score_to_label(0.6), ("unsure", scoring.LABEL_UNSURE))
+        self.assertEqual(scoring.score_to_label(0.95), ("ai", scoring.LABEL_AI))
+
+    def test_the_three_texts_are_all_different(self):
+        self.assertEqual(len(set(self.LABELS.values())), 3)
+
+    def test_no_placeholder_text_is_left(self):
+        for text in self.LABELS.values():
+            self.assertNotIn("PLACEHOLDER", text)
+
+    def test_texts_are_full_sentences(self):
+        for text in self.LABELS.values():
+            self.assertTrue(text[0].isupper(), text)
+            self.assertTrue(text.endswith("."), text)
+
+    def test_a_reader_never_sees_a_number_or_jargon(self):
+        # "0.62" means nothing to a writer, and neither does "threshold".
+        for text in self.LABELS.values():
+            self.assertFalse(any(ch.isdigit() for ch in text), text)
+            for word in ("threshold", "score", "confidence", "perplexity"):
+                self.assertNotIn(word, text.lower(), text)
+
+    def test_only_the_ai_label_mentions_appealing(self):
+        self.assertIn("appeal", scoring.LABEL_AI.lower())
+        self.assertNotIn("appeal", scoring.LABEL_HUMAN.lower())
+        self.assertNotIn("appeal", scoring.LABEL_UNSURE.lower())
+
+    def test_the_unsure_label_is_not_an_accusation(self):
+        text = scoring.LABEL_UNSURE.lower()
+        for loaded in ("cheat", "fake", "plagiar", "flagged", "violation"):
+            self.assertNotIn(loaded, text)
+        self.assertIn("not a finding that anything is wrong", text)
+
+    def test_the_readme_shows_exactly_the_text_the_code_returns(self):
+        # The README is the submission; if it drifts from the code, it is wrong.
+        readme = (config.ROOT / "README.md").read_text(encoding="utf-8")
+        for guess, text in self.LABELS.items():
+            self.assertIn(text, readme, f"README is missing the exact '{guess}' label")
+
+
 class Configuration(unittest.TestCase):
     def test_weights_are_proportions_not_required_to_sum_to_one(self):
         with mock.patch.object(config, "WEIGHT_MODEL_SIGNAL", 3.0), \

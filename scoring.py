@@ -1,8 +1,8 @@
 """
 Turning two numbers into one, and one number into something a person can read.
-← YOU BUILD THIS IN MILESTONES 4 AND 5
+(Built in Milestones 4 and 5.)
 
-Two functions live here, and both are stubs.
+Two functions live here.
 
 `combine_signals` is where your false-positive decision from Milestone 1
 actually gets made. Everything above it — the labels, the appeal path — is
@@ -17,6 +17,36 @@ you claim, so that line should read `scoring.py::combine_signals`.
 """
 
 import config
+
+# ── The three labels: the exact words a reader sees (Milestone 5) ────────────
+# The same text is in the README under "Label Variants", and test_scoring.py
+# fails if the two ever differ. Written for someone who has never heard the word
+# "threshold": no numbers, no "score", no jargon. The reasoning behind each one
+# is in the README.
+#
+# The "unsure" label is the one a real writer is most likely to meet, since
+# plain writing, formal writing and lightly-edited AI all land in it. It leads
+# with what is NOT known, blames the limits of the checks and not the writer,
+# says plainly that nothing is being alleged, and asks nothing of the reader.
+#
+# Only the "AI" label mentions appealing, because it is the one that can
+# wrongly accuse. It promises only what the service does: the appeal is recorded
+# and marked for review. It does not promise a person will read it.
+
+LABEL_HUMAN = "We think this was probably written by a person."
+
+LABEL_UNSURE = (
+    "We can't tell whether this was written by a person or with an AI tool. "
+    "Our checks aren't perfect, and plain or very formal writing can look the "
+    "same to them either way. This is not a finding that anything is wrong."
+)
+
+LABEL_AI = (
+    "Our checks found signs that this may have been written with an AI tool. "
+    "We can't be sure, and we sometimes get this wrong. If you wrote it "
+    "yourself, you can appeal and explain how you wrote it, and your appeal "
+    "will be recorded and marked for review."
+)
 
 
 def combine_signals(model_score: float, style_score: float) -> float:
@@ -100,7 +130,8 @@ def combine_signals(model_score: float, style_score: float) -> float:
 def score_to_label(score: float) -> tuple[str, str]:
     """
     Turn a score into a guess and the text a reader actually sees.
-    ← TODO (Milestone 5)
+    (Built in Milestone 5. The wording is in LABEL_HUMAN, LABEL_UNSURE and
+    LABEL_AI above, and the thresholds are in config.py.)
 
     Returns:
         (guess, label_text) — where `guess` is a short machine-readable string
@@ -123,12 +154,17 @@ def score_to_label(score: float) -> tuple[str, str]:
     think if they got it on their own work. That question is the whole
     milestone.
     """
-    # TODO: replace this — thresholds are in config.py
+    # ── MILESTONE 5 ──────────────────────────────────────────────────────────
+    # Two comparisons and a fallback. The order is the answer to "what happens
+    # on the boundary": a score exactly on a line gets the OUTER label, so 0.85
+    # is "ai" and 0.40 is "human". Checking the two outer labels first and
+    # letting everything else fall through to "unsure" is what guarantees there
+    # is no gap: every number from 0 to 1 matches exactly one of the three.
     if score >= config.AI_THRESHOLD:
-        return "ai", "PLACEHOLDER — write the high-confidence AI label."
+        return "ai", LABEL_AI
     if score <= config.HUMAN_THRESHOLD:
-        return "human", "PLACEHOLDER — write the high-confidence human label."
-    return "unsure", "PLACEHOLDER — write the unsure label."
+        return "human", LABEL_HUMAN
+    return "unsure", LABEL_UNSURE
 
 
 def label_ranges() -> list[tuple[str, str]]:

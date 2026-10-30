@@ -302,6 +302,10 @@ who wrote every word themselves and is reading it with a sinking feeling.
 <!-- One submission and one appeal, pasted as text: the request, the response,
      and the log entries. -->
 
+> The commands below were run with `curl.exe` on one line (Windows PowerShell)
+> on port 5001, because port 5000 was in use on my machine. On a free machine,
+> use 5000. All output is pasted as text, exactly as it came back.
+
 **A submission**
 
 <!-- The response needs content_id, guess, confidence, label, AND both
@@ -309,14 +313,12 @@ who wrote every word themselves and is reading it with a sinking feeling.
      two off the response, so leaving them out costs you next unit's
      diagnostics. -->
 
-> **Where the build is up to (Milestone 4).** `/submit` runs both signals and
-> combines them, so the response carries `model_score`, `style_score` and a real
-> `confidence` (the combined score). `guess` and `label` are still placeholders
-> until Milestone 5, which also adds the appeal to this section. The commands below were run with `curl.exe` on one
-> line (Windows PowerShell) on port 5001, because port 5000 was in use on my
-> machine. On a free machine, use 5000.
+Three submissions, one for each label, from three different writers. Together
+they show that all three labels are reachable.
 
-A normal submission. The text is AI-style prose, and both signals lean AI:
+*1. A high-confidence AI result.* The text is AI-style prose and both signals
+lean AI (model 0.8394, style 1.0), so the combined `confidence` is 0.9197, above
+the 0.85 line:
 
 ```bash
 $ curl.exe -X POST http://127.0.0.1:5001/submit -H "Content-Type: application/json" -d '{\"text\": \"Time management is a crucial skill that can significantly impact both personal and professional success. By setting clear goals, prioritizing tasks, and minimizing distractions, individuals can make the most of their available time.\", \"creator_id\": \"writer_ana\"}'
@@ -325,18 +327,17 @@ $ curl.exe -X POST http://127.0.0.1:5001/submit -H "Content-Type: application/js
 ```json
 {
   "confidence": 0.9197,
-  "content_id": "619f728b-39a0-4e4c-a86d-34a4dfab7644",
-  "guess": "unsure",
-  "label": "PLACEHOLDER: the real label arrives in Milestone 5.",
+  "content_id": "1cfcb48a-d890-412f-bc0a-357a63d8138b",
+  "guess": "ai",
+  "label": "Our checks found signs that this may have been written with an AI tool. We can't be sure, and we sometimes get this wrong. If you wrote it yourself, you can appeal and explain how you wrote it, and your appeal will be recorded and marked for review.",
   "model_score": 0.8394,
   "style_score": 1.0
 }
 ```
 
-A second submission, from a different writer. This text is specific and a bit
-odd, and both signals lean human (model 0.3881 and style 0.131, against 0.8394
-and 1.0 above), so the combined confidence moves a long way with the text
-(0.2596, against 0.9197):
+*2. A high-confidence human result.* The text is specific and a bit odd, and
+both signals lean human (model 0.3881, style 0.131), so `confidence` is 0.2596,
+below the 0.40 line:
 
 ```bash
 $ curl.exe -X POST http://127.0.0.1:5001/submit -H "Content-Type: application/json" -d '{\"text\": \"The ferry smelled of diesel and wet dog. Tomasz, who had not spoken since Calais, suddenly asked whether I thought gulls ever got bored. I said no. He said that was a shame, because he was, terribly, and then he laughed so hard he had to sit down on a coil of rope.\", \"creator_id\": \"writer_ben\"}'
@@ -345,15 +346,37 @@ $ curl.exe -X POST http://127.0.0.1:5001/submit -H "Content-Type: application/js
 ```json
 {
   "confidence": 0.2596,
-  "content_id": "12d3f73b-a57d-4195-a83d-32d750fe9e04",
-  "guess": "unsure",
-  "label": "PLACEHOLDER: the real label arrives in Milestone 5.",
+  "content_id": "7207a307-9e45-496c-887a-73ac58a818af",
+  "guess": "human",
+  "label": "We think this was probably written by a person.",
   "model_score": 0.3881,
   "style_score": 0.131
 }
 ```
 
-A request the service refuses (empty text). It gets a clear 400 and is also
+*3. An unsure result.* Plain, ordinary first-person writing. Both signals lean
+AI (model 0.7114, style 0.864) and `confidence` is 0.7877, which is high but
+under the 0.85 line, so the service says it can't tell instead of accusing:
+
+```bash
+$ curl.exe -X POST http://127.0.0.1:5001/submit -H "Content-Type: application/json" -d '{\"text\": \"Learning a second language takes patience, and I have learned that the hard way. Some days the words come easily and other days nothing sticks. What helps me most is practising a little every day, even when I do not feel like it.\", \"creator_id\": \"writer_cara\"}'
+```
+
+```json
+{
+  "confidence": 0.7877,
+  "content_id": "d0fe666d-6240-4d4f-9b9d-132a7d79fc10",
+  "guess": "unsure",
+  "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
+  "model_score": 0.7114,
+  "style_score": 0.864
+}
+```
+
+Example 3 is the case the thresholds exist for. At the placeholder line of 0.65
+this writer would have been told their work looked like AI.
+
+*A request the service refuses* (empty text). It gets a clear 400 and is also
 written to the log:
 
 ```bash
@@ -369,7 +392,8 @@ $ curl.exe -X POST http://127.0.0.1:5001/submit -H "Content-Type: application/js
 
 **An appeal**
 
-> Not built yet. `POST /appeal` is Milestone 5, so this block is filled in then.
+> Not built yet in this step. `POST /appeal` is added in the next one, and this
+> block is filled in then.
 
 ```bash
 $ curl -X POST http://127.0.0.1:5000/appeal \
@@ -383,48 +407,57 @@ $ curl -X POST http://127.0.0.1:5000/appeal \
 
 **What the log shows afterwards**
 
-All three requests above, read back from the audit log (`logs/audit.jsonl`).
-The two decisions are there, each recording all three numbers (`model_score`,
-`style_score` and `combined_score`), with `label` still `null` because it
-doesn't exist yet. The refusal is there too, attributed to the writer who sent
-it:
+The four requests above, read back from the audit log (`logs/audit.jsonl`).
+Each decision records all three numbers and the exact label the reader was
+shown. The refusal is there too, attributed to the writer who sent it:
 
 ```bash
-$ curl.exe "http://127.0.0.1:5001/log?limit=3"
+$ curl.exe "http://127.0.0.1:5001/log?limit=4"
 ```
 
 ```json
 {
-  "count": 3,
+  "count": 4,
   "entries": [
     {
       "combined_score": 0.9197,
-      "content_id": "619f728b-39a0-4e4c-a86d-34a4dfab7644",
+      "content_id": "1cfcb48a-d890-412f-bc0a-357a63d8138b",
       "creator_id": "writer_ana",
-      "guess": "unsure",
-      "label": null,
+      "guess": "ai",
+      "label": "Our checks found signs that this may have been written with an AI tool. We can't be sure, and we sometimes get this wrong. If you wrote it yourself, you can appeal and explain how you wrote it, and your appeal will be recorded and marked for review.",
       "model_score": 0.8394,
       "status": "decided",
       "style_score": 1.0,
-      "timestamp": "2026-10-30T20:21:22+00:00"
+      "timestamp": "2026-10-30T20:31:34+00:00"
     },
     {
       "combined_score": 0.2596,
-      "content_id": "12d3f73b-a57d-4195-a83d-32d750fe9e04",
+      "content_id": "7207a307-9e45-496c-887a-73ac58a818af",
       "creator_id": "writer_ben",
-      "guess": "unsure",
-      "label": null,
+      "guess": "human",
+      "label": "We think this was probably written by a person.",
       "model_score": 0.3881,
       "status": "decided",
       "style_score": 0.131,
-      "timestamp": "2026-10-30T20:21:22+00:00"
+      "timestamp": "2026-10-30T20:31:35+00:00"
+    },
+    {
+      "combined_score": 0.7877,
+      "content_id": "d0fe666d-6240-4d4f-9b9d-132a7d79fc10",
+      "creator_id": "writer_cara",
+      "guess": "unsure",
+      "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
+      "model_score": 0.7114,
+      "status": "decided",
+      "style_score": 0.864,
+      "timestamp": "2026-10-30T20:31:35+00:00"
     },
     {
       "creator_id": "writer_ben",
       "event": "rejected",
       "reason": "invalid_input",
       "status": "rejected",
-      "timestamp": "2026-10-30T20:21:22+00:00"
+      "timestamp": "2026-10-30T20:31:35+00:00"
     }
   ]
 }
