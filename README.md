@@ -84,7 +84,36 @@ The path a submission takes, in seven steps:
    with every score and the status `decided`. Later, `POST /appeal` finds that
    entry by `content_id` and appends an appeal with status `under_review`.
 
----
+**What comes back.** Every `/submit` reply carries a `content_id` (the handle
+for any later appeal), a `guess` (`ai`, `human` or `unsure`), a `confidence`
+(0 to 1, how far the text leans toward AI), the `label` sentence a reader sees,
+and the two signal scores, `model_score` and `style_score`, so a surprising
+result can be traced to the signal that caused it. There are three labels: "We
+think this was probably written by a person" (a score of 0.40 or lower), a
+"we can't tell" label (anything between), and a hedged "may have been written
+with an AI tool" label (0.85 or higher). The exact wording is under *Label
+Variants*.
+
+**The appeal.** If a label is wrong, the writer sends `POST /appeal` with the
+`content_id` and their reasoning. The service checks the id really exists
+(a typo gets a clear 404), records the appeal in the audit log *after* the
+original decision, marks the item `under_review`, and confirms. The log only
+ever appends, so the original decision is never edited or deleted. There is no
+automatic re-check.
+
+**What it can't do.** Both signals read plain, short-sentence writing (the way
+a second-language or younger writer might write) as machine-like, so a real
+person who writes plainly can score as high as AI text, and no way of combining
+the two numbers can fix that. I set the "AI" line high (0.85) for that reason.
+The price is that a lot of ordinary AI text, and lightly-edited AI, comes back
+"unsure" and not "AI". Fewer wrong accusations means more AI text getting
+through. See *Label Variants* for who pays for that trade.
+
+**Running and testing it.** `python app.py` starts the service (see
+`RUNNING.md` for the commands). There are four test files, none of which needs
+the service running or the model downloaded: `python test_stylometry.py`,
+`python test_scoring.py`, `python test_app.py` and
+`python test_eval_harness.py`.
 
 ---
 
@@ -392,9 +421,10 @@ $ curl.exe -X POST http://127.0.0.1:5001/submit -H "Content-Type: application/js
 
 **An appeal**
 
-writer_ana's text was labelled "high-confidence AI" above, but they wrote it
-themselves. They appeal using the `content_id` from their `/submit` response
-(`1cfcb48a-...`) and say why:
+Suppose writer_ana's text was labelled "high-confidence AI" above, but they
+wrote it themselves. (The three writers in this section are made up to show the
+service working.) They appeal using the `content_id` from their `/submit`
+response (`1cfcb48a-...`) and say why:
 
 ```bash
 $ curl.exe -X POST http://127.0.0.1:5001/appeal -H "Content-Type: application/json" -d '{\"content_id\": \"1cfcb48a-d890-412f-bc0a-357a63d8138b\", \"reasoning\": \"I wrote this myself for a time-management workshop. I tend to write in short, tidy sentences.\"}'
@@ -512,17 +542,47 @@ How to read it:
 
 ## How I Used AI
 
-**Moment 1**
+**Moment 1: the `curl` command that wouldn't run in PowerShell**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* How to fix the errors I got when I pasted the README's
+  `curl -X POST ... \` example into PowerShell (`-H` and `-d` "not recognized",
+  `Cannot bind parameter 'Headers'`).
+- *What came back:* An explanation that in PowerShell `curl` is an alias for a
+  different tool (`Invoke-WebRequest`) and that `\` is not a line continuation
+  there. The fix was `curl.exe` on one line, with the quotes inside the JSON
+  escaped (`'{\"message\": \"hello\"}'`). It also offered other options,
+  including sending the body from a file with `-d "@body.json"`.
+- *What I changed:* I first tried the file version, and it failed with
+  `Failed to open body.json`, because nothing had created that file. The advice
+  had skipped that step. I went back to the one-line inline version, which
+  worked, and used it for every command in this README. The lesson I took away
+  was to check what a suggested command depends on before running it.
 
-**Moment 2**
+**Moment 2: building the style signal**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* The second signal in `stylometry.py`, built from the three
+  measures the brief names (sentence-length spread, unique words over total
+  words, and punctuation density) and combined into one 0 to 1 score.
+- *What came back:* Working code for all three measures and a weighted average
+  of them, built on the brief's idea that AI text has a narrower vocabulary and
+  more even sentences.
+- *What I changed:* I did not take the idea on faith. I had the three measures
+  run over the 24 test texts first. Only sentence-length spread separated AI from
+  human (AI 0.09 to 0.19, human 0.41 to 0.99). Vocabulary variety ran the wrong
+  way (AI 0.81 to 0.90, human 0.77 to 0.92), and punctuation density overlapped
+  completely (0.06 to 0.11 for both). So I gave the other two measures weight 0,
+  kept them measured and visible, and wrote the finding down in `stylometry.py`
+  and in *Signal two* above, instead of weighting a measure the data
+  contradicted. I also fixed a mismatch the first version had: the code counted
+  full stops as punctuation, but the numbers I had checked did not, so I made
+  the code match the evidence.
+
+**One more thing to be clear about.** The example texts in the Sample Run, and
+the test texts in `scenarios.py`, were drafted by Claude as stand-ins. They are
+not my own writing, and the writers named in the Sample Run (`writer_ana`,
+`writer_ben`, `writer_cara`) are made up. Results from them show the service
+working. They are not evidence about my own writing, which is what unit 8
+tests.
 
 <!-- ═══════════════════════ UNIT 8 — THE TEST ═══════════════════════ -->
 

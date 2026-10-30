@@ -790,6 +790,54 @@ What it *does* show is that the machinery works end to end (the harness drives r
 
 **Before moving on:** all 3 labels are reachable and written out in the README. An appeal changes status and shows in the log. Done.
 
+### Milestone 6: Documentation for Unit 7
+
+**The idea:** The code works, but the README is the submission, and the grader checks the code against what the README claims. This milestone makes the README complete and true, then checks the whole repository against the submission checklist before the fork's URL is handed in.
+
+**Where the answers went:** [README.md](README.md) (*What This Does* and *How I Used AI*). The combining-rule line was already in *Signals and Scoring*.
+
+**What was done**
+
+1. **What This Does** was extended. It already held the seven-step path from Milestone 1. It now also says what comes back from `/submit` (and why both signal scores are in the reply), how the appeal works, the honest limit of the service (plain writing reads as machine-like, so the AI line is set high and many AI texts come back "unsure"), and how to run and test it. A first-time reader can now tell what the service does without opening any code.
+2. **How I Used AI** now describes two specific moments, each with *what I asked for*, *what came back* and *what I changed*:
+   - **The `curl` command that wouldn't run in PowerShell.** The advice was right about the alias and `curl.exe`, but offered a file-based variant that failed with `Failed to open body.json`, because nothing had created the file. The fix was to go back to the inline version. The lesson: check what a suggested command depends on before running it.
+   - **Building the style signal.** The first version trusted the brief's idea that AI text has a narrower vocabulary. Checking the three measures against the 24 test texts showed only sentence-length spread worked, so the other two got weight 0, and the code was corrected to match the evidence.
+   A short closing note discloses that the example texts in the Sample Run and the test texts in `scenarios.py` are stand-ins, not the author's writing, and that the three writers are invented.
+3. **The combining-rule line.** *Signals and Scoring* names `scoring.py::combine_signals`, as the grader expects. This was checked against the code and not just by eye: the function exists in that file, and every number the README quotes (the two weights and the three disagreement settings) equals the value in `config.py`.
+4. **Small fixes.** A duplicated divider between two sections was removed, and the appeal example in the Sample Run now says the three writers are made up, so it can't be mistaken for a real person's appeal.
+
+**Why "How I Used AI" is written the way it is.** Two moments, each specific, rather than a general statement that AI was used. A good entry shows a judgement call: something the AI produced that was checked, questioned or corrected. Both moments are real, and both were chosen because something changed as a result.
+
+**The submission checklist, checked by a script and not by eye.** The README's own checklist was turned into checks and run against the repository:
+
+| Checklist item | Result |
+| --- | --- |
+| `criteria.md` has five numbered criteria, each naming a number, each with a reason underneath | Pass (the reasons are 400+ characters each) |
+| The five unit 7 README sections are present and filled | Pass (What This Does, Signals and Scoring, Label Variants, Sample Run, How I Used AI) |
+| No placeholder text left anywhere in the README | Pass |
+| `POST /submit` returns `content_id`, `guess`, `confidence`, `label`, `model_score`, `style_score` | Pass (the Sample Run shows the real replies) |
+| Two signals that measure different things, each with a named blind spot | Pass |
+| Three label variants, all reachable, written out in full | Pass (and the README text equals the code's text exactly) |
+| `POST /appeal` changes status and writes to the log | Pass (shown in the Sample Run and the log) |
+| *Signals and Scoring* names `scoring.py::combine_signals` | Pass (the function is there, and the README's numbers match `config.py`) |
+| Sample Run: a submission and an appeal, as pasted text | Pass |
+| `logs/audit.jsonl` committed, every decision with all nine fields filled | Pass (six entries: three decisions, one appeal, two rejections) |
+| At least four new commits | Pass (16 since the starter's last commit, counting this one) |
+| Repository URL: the fork's, not CodePath's | Pass, `origin` is `https://github.com/Angelica-M/ai201-project4-provenance-guard-starter-v2026.git` |
+
+One of those checks failed on its first run, and the cause is worth recording. The script reported criterion 5 as missing its reason, but the criterion was fine. The unit 8 comment block at the bottom of `criteria.md` contains the phrase "Why this target" as an example, so the script saw it twice. The bug was in the checker, not the file, and was fixed by splitting on the first occurrence only. When a check fails, find out *which side* is wrong before changing anything.
+
+All four test suites also still pass (122 tests): `test_app.py` 29, `test_scoring.py` 34, `test_stylometry.py` 23 and `test_eval_harness.py` 36. `test_scoring.py` includes a test that reads the README, so editing the README is itself checked.
+
+**What is still the author's to do**
+
+- **Push this milestone's commit, then submit the fork's URL.** Git's record of the remote (`origin/main`) matched the last Milestone 5 commit when this milestone started, so everything up to Milestone 5 has already been pushed. This milestone's commit has not, and `git push origin main` sends it. Then submit `https://github.com/Angelica-M/ai201-project4-provenance-guard-starter-v2026` and write it down (the README checklist says to). It is the same repository for unit 8, so it must not be deleted or recreated.
+- **Read *How I Used AI* and make sure it is an accurate account of how the work was actually done.** It is written in the first person, and only the author can vouch for it.
+- **Replace the stand-in test texts with real writing** before unit 8's results count as evidence for criteria 1, 2 and 3.
+- **Stop the old server on port 5000** (a leftover process from an earlier smoke test that couldn't be closed from the tools used here).
+
+**Before moving on:** `criteria.md`, the five README sections, `logs/audit.jsonl` and four or more new commits are all in place, and the fork's URL is ready to submit. Done, apart from pushing this last commit.
+
 ---
 
 ## Features
