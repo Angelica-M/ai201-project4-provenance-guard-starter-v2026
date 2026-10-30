@@ -39,7 +39,37 @@
 <!-- The path a submission takes, from arriving to the label a reader sees.
      Six or seven steps — this is the trace you wrote in Milestone 1. -->
 
+Provenance Guard is a small backend a writing site can plug into. A site sends
+it a piece of text and who submitted it. It sends back a guess about whether a
+person or an AI wrote it, a number for how strongly the text leans one way, and
+a plain-English label a reader can understand. If the label is wrong, the
+writer can appeal it.
 
+The path a submission takes, in seven steps:
+
+1. **The request arrives** (`app.py`, `POST /submit`). The site sends JSON with
+   `text` and `creator_id`. The route checks that both are there and usable.
+   *It adds:* nothing to the text. It decides whether the text is worth scoring
+   at all. Bad input is refused with a clear error and logged as a rejection.
+2. **A `content_id` is assigned** (`app.py`). *It adds:* the handle that ties
+   this decision, its log entries, and any later appeal together.
+3. **Signal one reads the text** (`detector.py`, `model_signal`). A local
+   language model measures how predictable the text is. *It adds:*
+   `model_score`, 0 to 1, higher meaning more likely AI.
+4. **Signal two measures the text as text** (`stylometry.py`, `style_signal`).
+   Sentence length spread, word variety and punctuation, without understanding
+   a word. *It adds:* `style_score`, same direction as `model_score`.
+5. **The two scores become one** (`scoring.py`, `combine_signals`). *It adds:*
+   the combined score, 0 to 1. This is the `confidence` in the response.
+6. **The score becomes words** (`scoring.py`, `score_to_label`, using the
+   thresholds in `config.py`). *It adds:* the `guess` (`ai`, `human` or
+   `unsure`) and the label text a reader sees.
+7. **The decision is logged and answered** (`audit.py`, `log_decision`, then
+   the route's response). *It adds:* a permanent line in `logs/audit.jsonl`
+   with every score and the status `decided`. Later, `POST /appeal` finds that
+   entry by `content_id` and appends an appeal with status `under_review`.
+
+---
 
 ---
 
@@ -53,19 +83,48 @@
 
 ### Signal one — the model signal
 
-**What it measures:**
+**What it measures:** How predictable the text is to a language model
+(`detector.py`, gpt2 running on my own machine). It computes perplexity, which
+is how surprised the model is by each next word on average, and squashes it to
+a 0 to 1 score where higher means more likely AI. Only the first 400 tokens
+(about 300 words) are read.
 
-**Why that might differ between human and AI writing:**
+**Why that might differ between human and AI writing:** A language model
+writes by picking likely next words, so what it writes is easy for another
+model to predict. Human writing wanders more: odd word choices, abrupt turns,
+the specific instead of the typical. Low surprise points toward AI, high
+surprise toward human.
 
-**What it can't see:**
+**What it can't see:** Authorship. It only sees predictability, and plenty of
+real people write predictably: someone writing in a second language with
+vocabulary they're sure of, a younger writer, anyone writing plainly on
+purpose. Those writers score as machine-like. The reverse also holds: ornate
+AI text full of rare words can score as human. It also can't see anything past
+the first 400 tokens, and an old, small model like gpt2 is easy to fool with
+light paraphrasing. This is the signal most likely to accuse the writers with
+the least room to argue back.
 
 ### Signal two — the style signal
 
-**What it measures:**
+**What it measures:** The shape of the text, without understanding any of it
+(`stylometry.py`, which I build in Milestone 4). Three things: how much
+sentence length varies, how varied the vocabulary is (unique words over total
+words), and how much punctuation there is and of what kind. Each is turned into
+a 0 to 1 piece and combined into one score where higher means more likely AI.
 
-**Why that might differ between human and AI writing:**
+**Why that might differ between human and AI writing:** Generated prose tends
+toward even, mid-length sentences and a narrower band of vocabulary, because
+"most likely next word" averages out. Human writing is lumpier: a three-word
+sentence next to a forty-word one, an unexpected semicolon or dash.
 
-**What it can't see:**
+**What it can't see:** Meaning. It can't read, so anything that changes the
+shape without changing the substance moves it: adding typos (which raise word
+variety), chopping or joining sentences, pasting in a quotation. All of that
+is cheap to do on purpose. It is also unreliable on short text, where there is
+too little to measure spread, and word variety falls as text gets longer, so
+two texts of different lengths can't be compared on it directly. It shares
+signal one's weakness too: a person who writes in short, even, plain sentences
+looks like a machine to it.
 
 ### The combining rule
 
