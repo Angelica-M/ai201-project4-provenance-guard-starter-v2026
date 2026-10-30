@@ -660,6 +660,43 @@ The order is: human, then my expressive writing, then borderline, then plain wri
 
 **Before moving on:** both signals run and combine into one score. Clearly-AI and clearly-human text score noticeably apart. The log records all three numbers. Done.
 
+### Milestone 5: Write the label and the appeal path
+
+**The idea:** These are the last two pieces, and the ones a real person actually meets. A score of 0.62 means nothing to a writer. The label is where the service says what it means, and the appeal is the only thing standing between a wrong accusation and nothing at all.
+
+**Where the answers went:** The label wording and ranges are in the README under *Label Variants*. The code is in [scoring.py](scoring.py) (`score_to_label`) and [app.py](app.py) (`submit` and `appeal`). The thresholds are in [config.py](config.py). The README's *Sample Run* holds the pasted evidence. Each step below was committed on its own.
+
+**Step 1. Write the three labels and the score range each one covers**
+
+Before any code, the exact words a reader sees were written down, in the README under *Label Variants*, with the score range for each:
+
+| Label | Score range | What the reader sees |
+| --- | --- | --- |
+| High-confidence human | 0.40 or lower | "We think this was probably written by a person." |
+| Unsure | Above 0.40, below 0.85 | "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong." |
+| High-confidence AI | 0.85 or higher | "Our checks found signs that this may have been written with an AI tool. We can't be sure, and we sometimes get this wrong. If you wrote it yourself, you can appeal and explain how you wrote it, and your appeal will be recorded and marked for review." |
+
+**How the wording was decided**
+
+- **Write for someone who has never heard the word "threshold".** No numbers, no "score", no "confidence" anywhere a reader can see. "We think this was probably written by a person" beats "human, 0.81 confidence".
+- **The "unsure" label is the hard one, and the one a real writer is most likely to meet.** Plain writing, very formal writing and lightly-edited AI all land in it (Milestone 4 measured this). So it is written for a person who wrote every word and is reading it nervously: it leads with what is *not* known, names the reason as a limit of the checks (not of the writer), and says outright that nothing is being alleged. It asks nothing of the reader.
+- **Only the "AI" label mentions appealing**, because that is the label that can wrongly accuse. It says "may have", "we can't be sure" and "we sometimes get this wrong", and it promises only what the service actually does: the appeal is *recorded and marked for review*. It does not promise a human will read it, because nothing in the service guarantees that.
+
+**Where the lines sit, and who pays for it**
+
+The thresholds are the false-positive decision from Milestone 1, finally made as numbers. Two lines, deliberately not symmetrical, because the two mistakes do not cost the same:
+
+| Line | Value | Reason |
+| --- | --- | --- |
+| "AI" at or above | **0.85** | A wrong accusation is the expensive mistake. Plain human writing scored 0.765 to 0.830 in Milestone 4 (both signals misread it the same way), and the clearly-AI texts started at 0.885, so the line has to sit above 0.830. |
+| "Human" at or below | **0.40** | Wrongly saying "probably a person" costs the site very little, so this line can be generous. Clearly-human texts landed at 0.115 to 0.410. |
+
+The placeholder lines were 0.35 and 0.65. At 0.65, all three plain-writing pieces (0.765 to 0.830) would have been labelled AI, along with the lightly-edited AI (0.666): exactly the false accusations the unit is about. Moving to 0.85 removes that, and what it costs is stated plainly: a lot of ordinary AI text will be "unsure" and not "AI". The readers (less protection) pay instead of the writers (false accusations). That is the trade from Milestone 1, now a number.
+
+Honest limits: the margin is thin (0.830 against 0.850 on one side, 0.885 against 0.850 on the other). It comes from a small set of test texts, and the plain and "human" ones are Claude's stand-ins, not my writing. So 0.85 is the first number to revisit once real writing is tested. A boundary score goes to the outer label (0.40 is "human", 0.85 is "AI"), and the three ranges cover 0 to 1 with no gap.
+
+Changed in this step: [config.py](config.py) thresholds (0.35 / 0.65 to 0.40 / 0.85) with the reasoning beside them, and the README label table and wording. The wording was checked against the code's range printout (`scoring.label_ranges()`): `0.00 – 0.40`, `0.40 – 0.85`, `0.85 – 1.00`.
+
 ---
 
 ## Features

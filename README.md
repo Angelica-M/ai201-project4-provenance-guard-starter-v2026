@@ -244,14 +244,54 @@ signals.
 
 | Label | Score range | The exact text a reader sees |
 |---|---|---|
-| high-confidence human |  |  |
-| unsure |  |  |
-| high-confidence AI |  |  |
+| high-confidence human | 0.00 to 0.40 (a score of 0.40 or lower) | We think this was probably written by a person. |
+| unsure | Above 0.40 and below 0.85 | We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong. |
+| high-confidence AI | 0.85 to 1.00 (a score of 0.85 or higher) | Our checks found signs that this may have been written with an AI tool. We can't be sure, and we sometimes get this wrong. If you wrote it yourself, you can appeal and explain how you wrote it, and your appeal will be recorded and marked for review. |
+
+**How to read the score ranges.** The score is the `confidence` the service
+returns: a number from 0 to 1 for how far the text leans toward AI, where 0 is
+"definitely a person" and 1 is "definitely an AI". A **threshold** is just the
+line where one label turns into the next. There are two: at 0.40, below which
+the label is "human", and at 0.85, above which it is "AI". Everything in
+between is "unsure". A score landing exactly on a line gets the label on the
+outer side of it (0.40 is "human", 0.85 is "AI"). The three ranges together
+cover every score from 0 to 1 with no gap, so every score gets a label.
+
+**Why the two lines are not symmetrical.** The two mistakes cost different
+amounts. Calling a real writer's work AI is the expensive one. Wrongly saying
+"probably a person" costs the site very little. So the "AI" line is set very
+high (0.85) and the "human" line is more generous (0.40). I set 0.85 because
+plain human writing, which is the case most likely to be wrongly accused,
+scored 0.765 to 0.830 on my test texts, and clearly-AI text started at 0.885.
+The line had to sit above 0.830. The cost is real: a lot of ordinary AI text
+(and lightly-edited AI) will be labelled "unsure" instead of "AI", so the site
+gets less protection in exchange for fewer false accusations. The margin on
+each side of 0.85 is thin, and it comes from a small set of test texts, so it
+is the first number to revisit.
 
 **Why I worded the "unsure" one this way:**
 <!-- It's the hardest of the three. It has to admit uncertainty without
      sounding like an accusation, because the person reading it may well have
      written every word themselves. -->
+
+"Unsure" is the label a real writer is most likely to meet. Plain writing, very
+formal writing and lightly-edited AI all land in it, so I wrote it for someone
+who wrote every word themselves and is reading it with a sinking feeling.
+
+- **It opens with what we don't know, not what we suspect.** "We can't tell"
+  comes first. It never says "possibly AI" or "flagged", which a worried reader
+  would hear as an accusation.
+- **It names the reason in plain terms.** "Plain or very formal writing can look
+  the same to them either way" tells the reader the uncertainty is about the
+  checks, not about them. A plain writer will recognise their own writing in it.
+- **It says outright that nothing is being alleged.** "This is not a finding
+  that anything is wrong." A reader who has been uncertain-labelled should not
+  have to guess whether they are in trouble.
+- **It avoids jargon.** No "threshold", "score" or "confidence", and no number.
+  "0.62" means nothing to a writer.
+- **It asks nothing of the reader.** There is no instruction and no deadline,
+  because the person may have done nothing wrong. (The "AI" label is the one
+  that mentions appealing, since that is the label that can wrongly accuse.)
 
 
 

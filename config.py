@@ -93,27 +93,49 @@ DISAGREEMENT_MAX_PULL = 0.5
 # Where one label becomes another. Scores run 0.0 (confidently human) to 1.0
 # (confidently AI).
 #
-#   score < HUMAN_THRESHOLD          -> high-confidence human
+#   score <= HUMAN_THRESHOLD         -> high-confidence human
 #   between the two                  -> unsure
-#   score > AI_THRESHOLD             -> high-confidence AI
+#   score >= AI_THRESHOLD            -> high-confidence AI
 #
 # ⚠️ This is where your false-positive decision from Milestone 1 actually gets
 # made. Widening the unsure band means fewer wrong accusations and more AI text
 # getting through. There is no setting that avoids the trade — only settings
 # that decide who pays for it.
-
-HUMAN_THRESHOLD = 0.35
-AI_THRESHOLD = 0.65
-
-# ⚠️ One thing that catches people out in Milestone 5. A weighted average can
-# only land between its two inputs — so while `style_signal` is still the stub
-# returning 0.5, the combined score can never leave 0.25–0.75 no matter what
-# the model signal says, and the human label needs a model score below 0.20 to
-# be reachable at all.
 #
-# If a label you can't reach is the problem, the fix is upstream of the
-# thresholds: a style signal that actually varies. `scoring.label_ranges()`
-# prints the bands; the reachable range is a different question.
+# WHO PAYS, AND WHY THESE TWO NUMBERS
+#
+# The two labels are not equally expensive to get wrong, so the two lines are
+# not placed symmetrically:
+#
+#   AI_THRESHOLD = 0.85. Calling a real writer's work AI is the costly mistake.
+#   Measured in Milestone 4, plain human writing (short, simple sentences) scores
+#   0.765 to 0.830 on the combined score, because BOTH signals read it as
+#   machine-like, and no rule for combining them can fix that. The clearly-AI
+#   test texts start at 0.885. So the line has to sit above 0.830 to protect
+#   plain writers, and 0.85 leaves a little room on each side. That is a thin
+#   margin on a small set of stand-in texts, and it is the first number to
+#   revisit. The price is real: lightly-edited AI (0.666) and a lot of ordinary
+#   AI text will be "unsure" and not "AI". The readers pay for that, in less
+#   protection, instead of the writers, in false accusations.
+#
+#   HUMAN_THRESHOLD = 0.40. Saying "probably a person" wrongly costs the site
+#   very little (some AI text gets through), so this line can be more generous.
+#   Clearly-human test texts land at 0.115 to 0.410.
+#
+# The unsure band, 0.40 to 0.85, is wide on purpose. It is where plain writers,
+# formal writers and edited AI all end up, so its wording has to be safe for
+# someone who wrote every word themselves.
+
+HUMAN_THRESHOLD = 0.40
+AI_THRESHOLD = 0.85
+
+# Both labels have to be REACHABLE, and the combined score is what decides that.
+# combine_signals can produce anything from 0.0 to 1.0, so both lines are
+# reachable in principle. In practice, "AI" needs BOTH signals high at once
+# (about 0.85 or above on each, or one near 1.0), which the clearly-AI test
+# texts do reach (0.885 to 0.924). `scoring.label_ranges()` prints the bands;
+# whether an input actually lands in one is a different question, and the way
+# to know is to submit text that does.
 
 
 # ─── Rate limiting (UNIT 8) ──────────────────────────────────────────────────
