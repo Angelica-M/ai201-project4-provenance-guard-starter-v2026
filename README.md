@@ -157,6 +157,25 @@ looks like a machine to it.
 
 **A case where my two signals split, and what my rule does with it:**
 
+*The case.* A short human piece about a funeral ("Funeral on Thursday, rain,
+the kind that gets in behind your collar. Uncle Ray's brass band played 'Danny
+Boy' slightly flat..."). The model signal gives it **0.127**, very human. The
+style signal gives it **0.632**, leaning AI. They are 0.505 apart, the widest
+split among my 24 test texts.
+
+*Why they split.* The model signal sees unusual words and names (perplexity
+150.3, far above the 45 midpoint), so it calls the text human. The style signal
+sees only three sentences of 12, 19 and 28 words. That is a steady climb, not
+the lumpy mix of very short and very long sentences it treats as human, so it
+reads the text as fairly even. In this case the model signal is right and the
+style signal is wrong. The opposite also happens: a piece about a cracked
+pavement ("Neat. Black. Smug.") has three one-word sentences, so the style
+signal scores it **0.000**, as human as possible, while the model signal sits
+on the fence at **0.540**. Neither signal is reliably the better one, so
+neither can simply be trusted when they split.
+
+*What my rule does with it.* (The rule is written in the next step.)
+
 
 
 ---

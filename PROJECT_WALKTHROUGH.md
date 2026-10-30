@@ -536,6 +536,41 @@ How it was checked:
 - `python test_stylometry.py` runs 23 tests. They cover hand-worked values, the awkward inputs, a score that always stays between 0 and 1, and the direction (even sentences must score *higher*, more AI-like, than lumpy ones; a flipped direction would make everything above it wrong in a way that's hard to see).
 - Scores on the test sets: clearly AI 0.94 to 1.00; clearly human 0.00 to 0.63; plain pieces 0.69 to 0.81; borderline 0.58 to 0.76. Notice that the plain pieces land well above the human ones. That is the same weak spot signal one has, and Step 2 deals with it.
 
+**Step 2. Run both signals over the same pieces, and find where they split**
+
+Both signals were run over the same texts. The three pieces from Milestone 3 (one clearly AI, one clearly human, one in between) came first, and then all 24 test texts, to find real disagreements. This is the point of running them side by side: a rule for disagreement has to be written for a disagreement that actually exists.
+
+The three Milestone 3 pieces:
+
+| Piece | Model signal | Style signal | Agree? |
+| --- | --- | --- | --- |
+| Clearly AI ("In today's fast-paced digital landscape...") | 0.794 | 0.976 | Yes, both lean AI |
+| Clearly human (the sourdough piece) | 0.230 | 0.000 | Yes, both lean human |
+| In between (the city-life paragraph) | 0.628 | 0.703 | Yes, both lean AI a little |
+
+All 24 texts, grouped (model / style, each 0 to 1, higher = more likely AI):
+
+| Group | Model signal | Style signal | Do they agree? |
+| --- | --- | --- | --- |
+| Clearly AI (5) | 0.79 to 0.85 | 0.94 to 1.00 | Yes, both high |
+| Clearly human (5) | 0.13 to 0.54 | 0.00 to 0.63 | Mostly, with the two biggest splits below |
+| My own writing, expressive (7) | 0.27 to 0.60 | 0.00 to 0.60 | Mostly |
+| Plain writing (3) | 0.84 to 0.86 | 0.69 to 0.81 | **Yes, both high, and both wrong** |
+| Borderline (4) | 0.63 to 0.80 | 0.58 to 0.76 | Yes, both middling to high |
+
+**Where they split.** Two human pieces split by more than 0.5, in opposite directions:
+
+| Piece | Model | Style | Gap | Why |
+| --- | --- | --- | --- | --- |
+| Funeral ("Uncle Ray's brass band played 'Danny Boy' slightly flat") | **0.127** | **0.632** | 0.505 | The model sees unusual words and names (perplexity 150), so it says human. The style signal sees only three sentences of 12, 19 and 28 words, a steady climb and not a lumpy mix, so it reads them as fairly even. *The model is right, the style signal is wrong.* |
+| Cracked pavement ("Neat. Black. Smug.") | 0.540 | **0.000** | 0.540 | Three one-word sentences make the spread enormous, so the style signal calls it as human as possible. The model sits near its midpoint (perplexity 40.7). *The style signal is closer here.* |
+
+This is the case the combining rule has to handle, and it is written up in the README under *A case where my two signals split*. The lesson: neither signal is reliably the better one, so neither can simply be trusted when they split. Disagreement is itself information, and the information is "be less sure".
+
+**The bigger finding: agreement is not the same as being right.** The most dangerous group is not the one where the signals split. It is the *plain-writing* group, where both signals agree and both are wrong. The plain pieces average about 0.77 to 0.83 when the two scores are averaged, against about 0.89 to 0.92 for clearly-AI text, and *above* the lightly-edited-AI piece (about 0.67). Two agreeing signals feel like strong evidence, but here they are one mistake counted twice, because both read "short, even, plain sentences" as machine-like. No rule for combining the two numbers can fix that, because the numbers themselves are wrong in the same direction. Only where the label thresholds sit (Milestone 5) can protect those writers. So the combining rule should be written to handle disagreement well, and the thresholds should carry the false-positive protection.
+
+No code changed in this step. The README's split-case section was started, and its last sentence is completed in Step 3.
+
 ---
 
 ## Features
