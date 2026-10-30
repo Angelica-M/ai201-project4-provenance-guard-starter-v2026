@@ -30,8 +30,20 @@ from flask import Flask, jsonify, request
 
 import audit
 import config
+import detector
 
 app = Flask(__name__)
+
+
+def _error(status, code, message):
+    """
+    One shape for every refusal: {"error": <short code>, "message": <sentence>}.
+
+    A caller (or the evaluation harness) can branch on `error` without parsing
+    prose, and a person can read `message`. Keeping it in one place means every
+    route refuses in the same way.
+    """
+    return jsonify({"error": code, "message": message}), status
 
 
 # ── Rate limiting — UNIT 8 ────────────────────────────────────────────────────
@@ -199,19 +211,55 @@ def submit():
     what should this do when `text` is missing, empty, or enormous? A crash on
     a malformed input is one of the most common real failures there is.
     """
-    payload = request.get_json(silent=True) or {}
+    # ── MILESTONE 3, STEP 3: pull the fields out, run signal one, answer. ─────
+    # (Step 1 was a hardcoded answer, to prove the route itself worked before
+    # any logic went in. Now that logic is in, that proof is what tells a broken
+    # signal apart from a broken route.)
 
-    # ── MILESTONE 3, STEP 1: a hardcoded answer, with no logic in it. ─────────
-    # The point is to separate two kinds of failure. If curl gets this back, the
-    # route, the JSON handling and the server are all fine, so anything that
-    # breaks once real logic goes in is the logic's fault, not the route's.
-    # Every value below is a placeholder and is replaced in the steps after this.
+    # 1. Read the body. `silent=True` means a body that isn't JSON gives None
+    #    instead of raising, so we can answer with our own clean error.
+    payload = request.get_json(silent=True)
+
+    # 2. Refuse anything we can't score, with a 4xx and a reason, instead of
+    #    letting it crash further down. The checks run in this order because
+    #    each one assumes the one before it passed (you can't ask a list for
+    #    its "text"). The error codes and statuses are the Milestone 1 contract.
+    if not isinstance(payload, dict):
+        return _error(400, "invalid_input",
+                      "Send a JSON object with text and creator_id.")
+
+    text = payload.get("text")
+    creator_id = payload.get("creator_id")
+
+    if not isinstance(text, str) or not text.strip():
+        return _error(400, "invalid_input", "text must be a non-empty string.")
+    if not isinstance(creator_id, str) or not creator_id.strip():
+        return _error(400, "invalid_input", "creator_id must be a non-empty string.")
+    if len(text) > config.MAX_TEXT_CHARS:
+        return _error(413, "text_too_long",
+                      f"text is over {config.MAX_TEXT_CHARS:,} characters.")
+
+    # 3. Run signal one. Two things can go wrong and they are different faults:
+    #    the text is too short for the model to score (the caller's problem,
+    #    422), or the model itself couldn't load (the service's problem, 503).
+    try:
+        model_score = detector.model_signal(text)
+    except ValueError as exc:
+        return _error(422, "text_too_short", str(exc))
+    except detector.DetectorUnavailable as exc:
+        return _error(503, "detector_unavailable", str(exc))
+
+    # 4. Answer. content_id is generated here and must go back to the caller:
+    #    /appeal needs it to find this decision again. `confidence` and `label`
+    #    are placeholders until Milestones 4 and 5, which is why they are
+    #    constants and not computed from model_score. Nothing downstream should
+    #    be built on them yet.
     return jsonify({
-        "content_id": "hardcoded-test-id",
+        "content_id": str(uuid.uuid4()),
         "guess": "unsure",
         "confidence": 0.5,
-        "label": "PLACEHOLDER",
-        "model_score": 0.5,
+        "label": "PLACEHOLDER: the real label arrives in Milestone 5.",
+        "model_score": model_score,
     }), 200
 
 

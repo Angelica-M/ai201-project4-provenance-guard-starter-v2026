@@ -409,6 +409,34 @@ All three score *higher* than the clearly-AI paragraph (0.79). The prediction wa
 
 No code changed in this step. The result was recorded here.
 
+**Step 3. Wire the signal into the route**
+
+What changed in [app.py](app.py) (`submit`), in the order a request now flows:
+
+1. **Read the body** with `get_json(silent=True)`, so a body that isn't JSON gives `None` instead of crashing.
+2. **Refuse what can't be scored**, with a status and a reason: not an object (400), `text` missing, empty or not a string (400), `creator_id` missing or empty (400), `text` over 20,000 characters (413, a new `MAX_TEXT_CHARS` in [config.py](config.py)). The checks run in that order because each assumes the one before passed.
+3. **Run signal one**, `detector.model_signal(text)`. Two different faults are kept separate: text too short for the model to score is the caller's problem (422), and the model failing to load is the service's problem (503).
+4. **Answer** with a fresh `content_id` (a UUID), the real `model_score`, and placeholders for `guess`, `confidence` and `label`.
+
+Why the placeholders are constants and not derived from `model_score`: scoring and labelling are Milestones 4 and 5. Inventing a quick mapping now would put something that looks real under work that isn't done, and the later milestones need to start from a known blank.
+
+Why `content_id` is generated now: `/appeal` has to find a decision again later, and a student who skips it rebuilds this whole flow afterwards (the starter says so in `app.py`).
+
+Why bad input is handled now and not later: the error codes are the contract written in Milestone 1, and criterion 5 tests them. Every refusal goes through one small helper, `_error`, so they all share the same `{"error": ..., "message": ...}` shape.
+
+Checked with `curl.exe` against the running service:
+
+| Request | Result |
+| --- | --- |
+| Normal text | `200`, a UUID `content_id`, real `model_score` 0.8394, placeholder label |
+| `text` empty | `400 invalid_input` |
+| `creator_id` missing | `400 invalid_input` |
+| Body is a JSON list | `400 invalid_input` |
+| `text` is "Hi" | `422 text_too_short` |
+| `/ping` | still `200` (the control) |
+
+Not done yet, and expected at this point: nothing is written to the log (step 4), and rejections aren't logged either.
+
 ---
 
 ## Features
