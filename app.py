@@ -35,14 +35,28 @@ import detector
 app = Flask(__name__)
 
 
-def _error(status, code, message):
+def _error(status, code, message, creator_id=None):
     """
     One shape for every refusal: {"error": <short code>, "message": <sentence>}.
 
     A caller (or the evaluation harness) can branch on `error` without parsing
     prose, and a person can read `message`. Keeping it in one place means every
     route refuses in the same way.
+
+    Every refusal is also written to the audit log. A request that is turned
+    away and leaves no trace looks exactly like a quiet afternoon, and an
+    attack that shows up only as an absence is one you never find. The log
+    can't be allowed to be the thing that breaks a refusal, so a failed write
+    is swallowed here rather than turning a clean 4xx into a 500.
     """
+    try:
+        audit.log_rejection(
+            creator_id=creator_id if isinstance(creator_id, str) and creator_id.strip()
+            else "unknown",
+            reason=code,
+        )
+    except OSError:
+        pass
     return jsonify({"error": code, "message": message}), status
 
 
@@ -232,12 +246,17 @@ def submit():
     creator_id = payload.get("creator_id")
 
     if not isinstance(text, str) or not text.strip():
-        return _error(400, "invalid_input", "text must be a non-empty string.")
+        # Pass creator_id along even here: if it is a usable string, the log
+        # can say WHO sent the bad request. _error() writes "unknown" itself
+        # when it isn't usable.
+        return _error(400, "invalid_input", "text must be a non-empty string.",
+                      creator_id)
     if not isinstance(creator_id, str) or not creator_id.strip():
         return _error(400, "invalid_input", "creator_id must be a non-empty string.")
     if len(text) > config.MAX_TEXT_CHARS:
         return _error(413, "text_too_long",
-                      f"text is over {config.MAX_TEXT_CHARS:,} characters.")
+                      f"text is over {config.MAX_TEXT_CHARS:,} characters.",
+                      creator_id)
 
     # 3. Run signal one. Two things can go wrong and they are different faults:
     #    the text is too short for the model to score (the caller's problem,
@@ -245,19 +264,38 @@ def submit():
     try:
         model_score = detector.model_signal(text)
     except ValueError as exc:
-        return _error(422, "text_too_short", str(exc))
+        return _error(422, "text_too_short", str(exc), creator_id)
     except detector.DetectorUnavailable as exc:
-        return _error(503, "detector_unavailable", str(exc))
+        return _error(503, "detector_unavailable", str(exc), creator_id)
 
-    # 4. Answer. content_id is generated here and must go back to the caller:
-    #    /appeal needs it to find this decision again. `confidence` and `label`
-    #    are placeholders until Milestones 4 and 5, which is why they are
-    #    constants and not computed from model_score. Nothing downstream should
-    #    be built on them yet.
+    # 4. Decide, and remember the decision. content_id is generated here and
+    #    must go back to the caller: /appeal needs it to find this decision
+    #    again. `guess` and `confidence` are placeholders until Milestones 4
+    #    and 5, which is why they are constants and not computed from
+    #    model_score. Nothing downstream should be built on them yet.
+    content_id = str(uuid.uuid4())
+    guess = "unsure"
+    confidence = 0.5
+
+    # 5. Write it to the audit log BEFORE answering. If the answer is sent first
+    #    and the write then fails, the caller holds a decision the service has no
+    #    record of, and an appeal against it would find nothing. Fields that
+    #    don't exist yet (the style score, the combined score, the label) are
+    #    left as None on purpose: an honest blank beats a made-up value, and the
+    #    entry already has the right shape for when Milestones 4 and 5 fill them.
+    audit.log_decision(
+        content_id=content_id,
+        creator_id=creator_id,
+        guess=guess,
+        model_score=model_score,
+        status="decided",
+    )
+
+    # 6. Answer.
     return jsonify({
-        "content_id": str(uuid.uuid4()),
-        "guess": "unsure",
-        "confidence": 0.5,
+        "content_id": content_id,
+        "guess": guess,
+        "confidence": confidence,
         "label": "PLACEHOLDER: the real label arrives in Milestone 5.",
         "model_score": model_score,
     }), 200

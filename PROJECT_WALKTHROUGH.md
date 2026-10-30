@@ -437,6 +437,21 @@ Checked with `curl.exe` against the running service:
 
 Not done yet, and expected at this point: nothing is written to the log (step 4), and rejections aren't logged either.
 
+**Step 4. Write every submission to the audit log**
+
+What changed in [app.py](app.py): after signal one runs, `submit()` calls `audit.log_decision(...)` with the content id, creator id, guess, `model_score` and a status of `decided`. [audit.py](audit.py) was given and writes one JSON object per line to `logs/audit.jsonl`. It is a file that can be read back, not `print()`.
+
+Why a file and not `print()`: next unit an attack runs against this service, and an attack you can't see in a log is an attack you can't diagnose. A printed line scrolls away. A line in a file stays.
+
+Decisions worth understanding:
+
+- **Log before answering.** If the reply goes out first and the write then fails, the caller holds a decision the service has no record of, and an appeal against it would find nothing.
+- **Blanks stay blank.** `style_score`, `combined_score` and `label` are logged as `null`, because those don't exist yet. An honest blank is better than a made-up value, and the entry already has the shape it will keep, so early and late entries can be compared later. All nine fields the unit 8 rubric needs are present from the start.
+- **Refusals are logged too.** `_error()` now also calls `audit.log_rejection(...)`, because a request that is turned away and leaves no trace looks exactly like a quiet afternoon. If the log write itself fails, the error is swallowed so a clean `400` doesn't become a `500`.
+- **Who sent a bad request.** The early validation errors pass `creator_id` through, so a rejected request with a usable `creator_id` is attributed to it. The first version logged `unknown` for an empty-text request from `user2`. I caught that by reading the log back, and fixed it.
+
+How it was checked: one good submission and two bad ones were sent, then `logs/audit.jsonl` was read directly. The good one wrote a `decided` entry with a real `model_score`. Each bad one wrote a `rejected` entry with the reason `invalid_input` and the right creator.
+
 ---
 
 ## Features
