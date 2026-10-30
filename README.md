@@ -45,6 +45,21 @@ person or an AI wrote it, a number for how strongly the text leans one way, and
 a plain-English label a reader can understand. If the label is wrong, the
 writer can appeal it.
 
+A few terms used below, in plain words:
+
+- **Endpoint:** one web address the service answers at, such as `/submit`.
+- **Signal:** one independent way of guessing. This service has two, and they
+  look at different things.
+- **Token:** a chunk of text (usually a word or part of a word) that the
+  language model reads as one unit.
+- **Perplexity:** a measure of how surprised a language model is by a piece of
+  text. Low means the text was easy to predict.
+- **Stylometry:** measuring the *style* of writing (sentence lengths, word
+  variety, punctuation) with numbers instead of reading for meaning.
+- **Combined score:** the single 0 to 1 number made from both signals. 0 means
+  confidently human and 1 means confidently AI.
+- **Threshold:** the score at which one label turns into another.
+
 The path a submission takes, in seven steps:
 
 1. **The request arrives** (`app.py`, `POST /submit`). The site sends JSON with
