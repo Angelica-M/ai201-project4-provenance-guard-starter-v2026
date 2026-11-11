@@ -929,6 +929,43 @@ Could someone reconstruct the decision from this, without the code? Using only t
 
 **What it can't reconstruct, said plainly.** The submitted text itself is not logged, by design: the nine fields are the decision, not the content, and the service's job (unit 8's attack run especially) means a lot of adversarial text passing through that need not sit in a permanent file. A bigger limit: the entry doesn't record *which* thresholds or weights were used. If `config.py`'s numbers are ever changed later, this entry's arithmetic would need the config as it stood on 2026-10-30, not whatever it is at the time of reading. Today that is recoverable from git history, but the log entry alone doesn't say it. That is a real gap, written down rather than hidden, and it is not fixed in this step since the brief only asks to check, not to extend the schema further.
 
+**Step 4. Confirm rejections are logged, and that `GET /log` returns everything**
+
+Two kinds of refusal exist, logged by two different pieces of code, and it is worth being precise about which is which:
+
+- **Rate-limit rejections** are logged by the starter's own `429` error handler in `app.py` (`rate_limited`), not by anything built this unit. Step 2 already exercised this.
+- **The route's own refusals** (a `400` for missing or empty `text`, a `413` for text too long, a `422` for text too short, and `/appeal`'s `400`/`404`/`413`) are logged through `_error()`, which calls `audit.log_rejection`. This was built back in unit 7, Milestone 3, step 4, and is still in place: `grep` confirms every `_error(...)` call site in `app.py` and the one place `log_rejection` itself is called from inside it.
+
+Why both paths matter being logged, in the brief's own words: **an attack that shows up only as an absence is one you'll never find.** A thousand requests that got a `429` and left no trace would look exactly like a quiet afternoon, and the same is true of a thousand malformed requests that got a quiet `400`.
+
+**The real check**, run against the live service: three pieces of text were submitted by `curl.exe`, one of them deliberately bad, so both kinds of outcome would be exercised in one small run:
+
+| # | Sent | Result |
+| --- | --- | --- |
+| 1 | A real paragraph, from `writer_dao` | `200`, decided, `human`, confidence 0.3464 |
+| 2 | Empty text, same writer | `400 invalid_input` — the route's own refusal, not the rate limiter |
+| 3 | A different real paragraph, from `writer_evan` | `200`, decided, `unsure`, confidence 0.502 |
+
+`GET /log?limit=3` was then read, and it returned exactly those three entries, in the order sent: a `decided` entry for writer_dao, a `rejected` entry for writer_dao with `"reason": "invalid_input"` (proving the route-level path, not `rate_limited`), and a `decided` entry for writer_evan. Nothing was missing and nothing extra appeared. The log file grew from 21 lines to 24, matching 3 requests sent.
+
+(Both real submissions happened to log `style_score: 0.5`. That is not a bug: each text was a single sentence, and `stylometry.py`'s own documented rule is that a single sentence carries no spread information and scores a neutral 0.5 rather than being misread as "perfectly even". Noted here only so it isn't mistaken for something broken.)
+
+**Milestone 1 summary: what is true now**
+
+- `POST /submit` is rate limited at 5 a minute and 50 a day per caller, with the numbers defended in the README and the decorator confirmed really attached by a test.
+- A real flood past the limit produces exactly the expected run of status codes, and every limited request is logged.
+- Every decision in the audit log carries all nine required fields, verified by scanning the whole log and by hand-reconstructing one entry from nothing but the entry and the documented rule.
+- Both kinds of refusal — rate-limit and the route's own input checks — are logged, and `GET /log` was shown to return everything sent to it, in order, with nothing missing.
+
+**What this milestone taught**
+
+- **A limit is a decision about two different people, not a single number.** Writing out what an honest writer and an adversarial script each look like made the actual numbers almost choose themselves.
+- **"Per creator_id" is a choice with a known hole, and saying so is better than pretending it has none.** A script can dodge it by inventing identities; a real deployment would need both kinds of counting together.
+- **Verifying by reading data back is stronger than trusting a status code.** Both the flood test and the three-text test checked `GET /log`, not just the HTTP responses, because a response can lie about what got recorded.
+- **"Could a stranger reconstruct this from the entry alone?" is a good test for a log schema.** Doing it by hand, with a calculator and the README, is more convincing than asserting the schema is complete.
+
+**Before moving on:** rate limiting is on for `/submit` with defended numbers, the real flood test produced the expected run of status codes, every decision logs all nine fields (checked by eye), and `GET /log` was confirmed to return every entry, including both kinds of rejection. Done.
+
 ---
 
 ## Features
