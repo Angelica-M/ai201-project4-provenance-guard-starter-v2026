@@ -781,9 +781,9 @@ AI-style text was labelled human at 0.2856.
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1. Own-writing false positives | At most 1 of 10 labelled AI | missed | missed | missed | MISS: 2/10 plain pieces labelled AI |
-| 2. Score spread | AI mean at least 0.30 above human; 4/5 each side of 0.50 | met | met | met | Provisional; human set is AI-drafted |
-| 3. Label coverage | All labels; 3/4 borderline unsure; real label text | met | met | met | Provisional; human/borderline sets are AI-drafted |
+| 1. Own-writing false positives | At most 1 of 10 labelled AI | missed | missed | missed | MISSED: 2/10 plain pieces labelled AI |
+| 2. Score spread | AI mean at least 0.30 above human; 4/5 each side of 0.50 | met | met | met | MET (provisional: AI-drafted human set) |
+| 3. Label coverage | All labels; 3/4 borderline unsure; real label text | met | met | met | MET (provisional: AI-drafted human/borderline sets) |
 | 4. Appeal path | 10/10 appeals recorded; 5/5 unknown ids refused | met | met | met | MET |
 | 5. Bad input | 8/8 JSON 4xx errors, service alive, 8 rejections | met | met | met | MET; see 429 note below |
 
@@ -933,43 +933,77 @@ Source: `results/run_2026-11-10_1928_before.md`, produced by
 
      Look for a pattern. Five failures on one signal is one problem, not five. -->
 
-The attack set has no 5xx or crashes; the “broke” marks above mean the attack
-achieved its stated classification/input goal, not that the process crashed.
+The before run had **15 broken attacks**: all 10 evasion rows, PI01–PI02, and
+MF03–MF04 plus MF06. It had no 5xx or crashes. “Broke” means the attack
+achieved its stated goal (or invalid content was scored), not that the service
+process crashed.
 
-- **Evasion, 10/10:** The label mapping is the final weakness: AI-targeted text
-  never reached the 0.85 AI line. EV02 and EV06 drove the style signal to 0.001
-  and 0.000 by adding extreme sentence-length variation, pulling the combined
-  scores to 0.3718 and 0.3592. EV05 lowered both signals (0.3212 and 0.2500),
-  so the combination could not recover the AI origin. The other seven were
-  `unsure`, which avoids an AI finding but still lets the evasion avoid the AI
-  label.
-- **Own-writing false positives, 2/10:** In each trial, pieces 8 and 9 crossed
-  the 0.85 AI threshold. Their sentences are similar in length, which makes the
-  sentence-spread measure report a maximum AI-like style score of 1.0. The
-  model scores (0.8106 and 0.7913) also lean high. Because each signal pair is
-  less than 0.30 apart, the disagreement rule does not pull the average toward
-  unsure; the combined scores are 0.9053 and 0.8957, and label mapping calls
-  both AI. This is a false positive at the signal/combining/threshold path, not
-  a route or logging failure.
-- **Prompt injection, 2/6:** PI01 and PI02 received the requested `human`
-  label. The route does not execute the text as instructions; instead, the
-  detector treats the injected words as ordinary text. The model and style
-  signals both landed low (PI02: 0.2044 and 0.2830), and the combined score
-  crossed the human threshold. PI04's hostile markup did not change the fixed
-  label, and PI05's supplied JSON fragment did not become audit fields.
-- **Malformed text, 3/20:** The route checked that text was a non-empty string,
-  but not that it contained usable text. Control characters, punctuation-only
-  text, and emoji-only text reached the detector and received decisions. This
-  was a route-validation gap, fixed below. The giant single token remained
-  accepted but did not crash and was labelled unsure; the right-to-left Arabic
-  sample is valid writing and should remain supported.
-- **False positives, 0/8:** None of the human-targeted samples received an AI
-  label. FP05 was the closest to the line at 0.8097. These samples are still
-  AI-drafted stand-ins, so they do not establish the false-positive rate on my
-  own writing.
-- **Flood and malformed-request limit, held:** The shared-creator flood passed
-  five requests and then produced 429s. RQ10 and RQ11 also got 429s under the
-  address fallback, before the route could inspect their content types.
+- **Criterion 1 miss, pieces 8–9 — signal two, signal one, combining rule, and
+  label mapping:** These plain routine descriptions have very even sentence
+  lengths, so the stylometry signal reports 1.0 for each. The model signal
+  scores are also high (0.8106 and 0.7913). Their gaps from the style scores
+  are below the 0.30 disagreement trigger, so the combining rule leaves the
+  averages high (0.9053 and 0.8957); the label mapping consequently returns
+  `ai`. The mechanism is that regular plain prose looks predictable and
+  uniformly paced to both signals. This explains the two false positives as
+  one shared weakness, not two separate bugs.
+- **EV01 — signal one, then combining rule and label mapping:** Typos were
+  intended to manipulate signal two's vocabulary variety, but that measure
+  has weight 0. The misspelled text instead drives the model score down to
+  0.1635, while sentence regularity leaves style at 0.985. The signals
+  disagree, the combination moves toward 0.5, and the final 0.5371 is `unsure`.
+- **EV02 and EV06 — signal two, then combining rule and label mapping:**
+  Breaking up AI prose creates extreme sentence-length variation, driving
+  style to 0.001 and 0.000. The model scores (0.5943 and 0.5727) do not offset
+  it; after the disagreement pull the combined scores are 0.3718 and 0.3592,
+  which the label mapping calls `human`.
+- **EV03, EV04, and EV07 — signals and label mapping:** The pasted quotation
+  changes the measured shape (EV03 style 0.581); unusual words lower EV04's
+  model score to 0.6114 while style is 0.966; and punctuation padding does not
+  affect a punctuation measure whose weight is zero (EV07 style is neutral at
+  0.500). Each combined score remains below 0.85, so the label mapping returns
+  `unsure`. These are three surface-form manipulations; the common mechanism
+  is that the signals do not provide evidence strong enough to cross the AI
+  threshold.
+- **EV08, EV09, and EV10 — signal one and/or the combining rule, then label
+  mapping:** EV08's short text scores 0.2452 on the model signal versus 0.810
+  on style; the disagreement rule pulls it to 0.5185. EV09's human-sounding
+  opening yields model/style scores of 0.7042/0.546 and a combined 0.6251.
+  EV10's repeated stanza structure yields 0.9792/0.652; the disagreement pull
+  lowers the combined score to 0.8049. All three are labelled `unsure` because
+  the final scores remain below 0.85. The model's token window and the
+  two-signal disagreement rule limit how decisive these manipulated inputs
+  can become.
+- **EV05 — both signals, combining rule, and label mapping:** The heavy human
+  edit makes both scores look human-like (0.3212 and 0.2500). Because the
+  signals agree, the disagreement rule does not activate; the combined 0.2856
+  is labelled `human`. This is the clearest end-to-end evasion in the set.
+- **PI01 and PI02 — signal one, signal two, and label mapping:** The route
+  treats the injection text as ordinary submitted prose; it does not execute
+  it as an instruction. But that prose produces low enough signal scores that
+  the combined scores (0.3653 and 0.2437) cross the human threshold. The
+  mechanism is classification of the injected wording, not prompt execution.
+- **MF03, MF04, and MF06 — route:** The original route checked only that text
+  was a non-empty string. Control characters, punctuation-only input, and
+  emoji-only input therefore reached the signals and were logged as decisions.
+  This route-validation gap is the one fixed by the improvement below. MF05's
+  long single token was accepted but did not crash; MF07 is valid Arabic text
+  and should remain accepted.
+- **No false-positive attack broke:** All eight FP rows were labelled `unsure`,
+  not `ai`; FP05 was closest to the AI threshold at 0.8097. These are
+  AI-drafted stand-ins, so they are not reliable human-ground-truth evidence.
+- **Flood and malformed-request limits held:** Five same-creator submissions
+  passed and the next seven received 429. RQ10 and RQ11 also received 429
+  through the address fallback before the route could inspect their content
+  types; those rows show limiter behavior, not route-level content-type checks.
+
+**Pattern:** The biggest shared weakness is the score-to-label path. The
+signals describe surface predictability and sentence shape, not authorship;
+plain, evenly paced human prose can score AI-like, while edits that change
+surface shape can lower AI text's score. The cautious 0.85 threshold protects
+writers from more accusations, but also leaves many evasion attempts in
+`unsure`. Lowering it to catch those attempts would make the demonstrated
+plain-writing false positives worse.
 
 ---
 
