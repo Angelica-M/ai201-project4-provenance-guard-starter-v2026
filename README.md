@@ -577,12 +577,12 @@ How to read it:
   full stops as punctuation, but the numbers I had checked did not, so I made
   the code match the evidence.
 
-**One more thing to be clear about.** The example texts in the Sample Run, and
-the test texts in `scenarios.py`, were drafted by Claude as stand-ins. They are
-not my own writing, and the writers named in the Sample Run (`writer_ana`,
-`writer_ben`, `writer_cara`) are made up. Results from them show the service
-working. They are not evidence about my own writing, which is what unit 8
-tests.
+**One more thing to be clear about.** The example texts in the Sample Run were
+drafted by Claude as stand-ins, and the writers named there (`writer_ana`,
+`writer_ben`, `writer_cara`) are made up. The clearly-human and borderline
+scenario texts in `scenarios.py` are also AI-drafted stand-ins and do not yet
+provide evidence for criteria 2 and 3. The ten pieces in the criterion 1
+scenario are my supplied writing and are evaluated separately.
 
 <!-- ═══════════════════════ UNIT 8 — THE TEST ═══════════════════════ -->
 
@@ -781,17 +781,19 @@ AI-style text was labelled human at 0.2856.
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1. Own-writing false positives | At most 1 of 10 labelled AI | met | met | met | Provisional; samples are not mine |
+| 1. Own-writing false positives | At most 1 of 10 labelled AI | missed | missed | missed | MISS: 2/10 plain pieces labelled AI |
 | 2. Score spread | AI mean at least 0.30 above human; 4/5 each side of 0.50 | met | met | met | Provisional; human set is AI-drafted |
 | 3. Label coverage | All labels; 3/4 borderline unsure; real label text | met | met | met | Provisional; human/borderline sets are AI-drafted |
 | 4. Appeal path | 10/10 appeals recorded; 5/5 unknown ids refused | met | met | met | MET |
 | 5. Bad input | 8/8 JSON 4xx errors, service alive, 8 rejections | met | met | met | MET; see 429 note below |
 
-The report says every coded target was met in all three trials. Criteria 1–3
-are not valid evidence about my writing: `scenarios.py` identifies those
-human/borderline samples as AI-drafted stand-ins. I have not replaced them with
-my own writing, so those three verdicts remain provisional and must be rerun
-before I can claim they hold.
+Criterion 1 now uses the ten pieces I supplied. It missed in all three trials:
+2 of 10 were labelled high-confidence AI, against the limit of 1. The two
+false positives were the plain routine description (0.9053) and grocery-trip
+description (0.8957); both have a style score of 1.0. Criteria 2 and 3 still
+use the AI-drafted clearly-human and borderline stand-ins documented in
+`scenarios.py`, so their passing results are provisional until those sets are
+replaced with my own writing.
 
 Criterion 5 met its written 4xx contract, but one or two requests without a
 usable `creator_id` received 429 in some trials. Those requests were rejected
@@ -815,9 +817,19 @@ that produced it:
 ]
 ```
 
-From `results/run_2026-11-10_1848_before.md`, produced by
+From `results/run_2026-11-10_1928_before.md`, produced by
 `run_eval.py::run_submit_trial`, Trial 1 of **bad input**. The report also
 records `{"alive_after": true, "new_rejections": 8}` for this trial.
+
+Trial 1 of **my own writing** from the same report shows the two plain-text
+false positives (items 8 and 9):
+
+```json
+[
+  {"guess":"ai","confidence":0.9053,"model_score":0.8106,"style_score":1.0,"sent":"I wake up at seven in the morning, brush my teeth, and turn on the cof"},
+  {"guess":"ai","confidence":0.8957,"model_score":0.7913,"style_score":1.0,"sent":"I drove down to the local grocery store on Tuesday afternoon using the"}
+]
+```
 
 **Diagnoses**
 
@@ -845,6 +857,14 @@ achieved its stated classification/input goal, not that the process crashed.
   so the combination could not recover the AI origin. The other seven were
   `unsure`, which avoids an AI finding but still lets the evasion avoid the AI
   label.
+- **Own-writing false positives, 2/10:** In each trial, pieces 8 and 9 crossed
+  the 0.85 AI threshold. Their sentences are similar in length, which makes the
+  sentence-spread measure report a maximum AI-like style score of 1.0. The
+  model scores (0.8106 and 0.7913) also lean high. Because each signal pair is
+  less than 0.30 apart, the disagreement rule does not pull the average toward
+  unsure; the combined scores are 0.9053 and 0.8957, and label mapping calls
+  both AI. This is a false positive at the signal/combining/threshold path, not
+  a route or logging failure.
 - **Prompt injection, 2/6:** PI01 and PI02 received the requested `human`
   label. The route does not execute the text as instructions; instead, the
   detector treats the injected words as ordinary text. The model and style
@@ -956,9 +976,10 @@ evasion cases and the two successful prompt-injection cases remain unchanged.
 
 Yes, for the narrow malformed-text gap: MF03, MF04, and MF06 changed from 200
 decisions to 400 rejections. Arabic MF07 remains accepted, as it should. It did
-not improve evasion detection: all ten EV outcomes and both prompt-injection
-human labels are unchanged. The five automated targets still report met in
-each trial, but criteria 1–3 remain invalid until the stand-in prose is
+not improve evasion detection or the plain-writing false positives: all ten EV
+outcomes, both prompt-injection human labels, and the two 0.85+ own-writing
+scores are unchanged. Criterion 1 therefore still misses in every after trial;
+criteria 2 and 3 remain provisional until their AI-drafted stand-ins are
 replaced with my own writing.
 <!-- Widening the unsure band usually fixes one problem and creates another.
      Reporting that trade honestly is worth full credit. -->
@@ -987,10 +1008,13 @@ RQ11 remain untested at the route because the fallback address quota returns
 requests after earlier requests from the same local address; a production
 evaluation should isolate the limiter state or run after its window resets.
 
-Criteria 1–3 still need real, non-AI-authored writing before their results can
-be trusted. I did not invent personal writing to fill those scenarios; I need
-to replace the stand-ins with my own work and rerun those three trials.
+Criterion 1 is now measured on my supplied writing and misses its target: the
+two plain routine descriptions are called AI in every trial. Criteria 2 and 3
+still need five distinct clearly-human pieces and four borderline pieces of my
+own; their current stand-ins are AI-drafted, so those criteria cannot yet be
+claimed as validated.
 
+**Repository URL:** https://github.com/Angelica-M/ai201-project4-provenance-guard-starter-v2026
 
 **The trade I'd make if this ran for real:**
 
@@ -1007,31 +1031,31 @@ all rate limits, while accounting for shared networks.
 
      SUBMISSION CHECKLIST — unit 7
 
-       [ ] criteria.md has five numbered criteria, each naming a target
-       [ ] Each has a reason underneath
-       [ ] POST /submit returns content_id, guess, confidence, label,
+         [x] criteria.md has five numbered criteria, each naming a target
+         [x] Each has a reason underneath
+         [x] POST /submit returns content_id, guess, confidence, label,
            model_score and style_score
-       [ ] Two signals that measure DIFFERENT things, each with a named blind spot
-       [ ] Three label variants, all reachable, written out in full
-       [ ] POST /appeal changes status and writes to the log
-       [ ] Signals and Scoring names scoring.py::combine_signals
-       [ ] Sample Run: a submission AND an appeal, as pasted text
-       [ ] At least four new commits
-       [ ] Repository URL submitted — WRITE IT DOWN
+         [x] Two signals that measure DIFFERENT things, each with a named blind spot
+         [x] Three label variants, all reachable, written out in full
+         [x] POST /appeal changes status and writes to the log
+         [x] Signals and Scoring names scoring.py::combine_signals
+         [x] Sample Run: a submission AND an appeal, as pasted text
+         [x] At least four new commits (8 commits dated 2026-11-10)
+         [x] Repository URL submitted: see URL above
 
      SUBMISSION CHECKLIST — unit 8
 
-       [ ] Rate limiting on /submit, with your numbers justified
-       [ ] The pasted run of status codes showing 429
-       [ ] Audit log with all nine fields, recording rejections too
-       [ ] The attack set run IN FULL, every input with an outcome
-       [ ] Ten audit log entries pasted as text
-       [ ] Five criteria across three trials
-       [ ] A diagnosis for every miss and every broken attack — stage AND mechanism
-       [ ] One improvement, with Attack Run — After
-       [ ] What's Still Broken, including the production trade
-       [ ] At least four new commits
-       [ ] The SAME repository URL as last unit
+      [x] Rate limiting on /submit, with your numbers justified
+      [x] The pasted run of status codes showing 429
+      [x] Audit log with all nine fields, recording rejections too
+      [x] The attack set run IN FULL, every input with an outcome
+      [x] Ten audit log entries pasted as text
+      [x] Five criteria across three trials (criterion 1 missed; criteria 2–3 provisional)
+      [x] A diagnosis for every miss and every broken attack — stage AND mechanism
+      [x] One improvement, with Attack Run — After
+      [x] What's Still Broken, including the production trade
+      [x] At least four new commits (8 commits dated 2026-11-10)
+      [x] The SAME repository URL as last unit: see URL above
 
      Do not delete and recreate this repository.
      ═════════════════════════════════════════════════════════════════════ -->

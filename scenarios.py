@@ -24,19 +24,15 @@ A scenario carries **either** of these:
 ──────────────────────────────────────────────────────────────────────────────
 WHO WROTE THE TEXT IN THIS FILE  (read this before trusting any result)
 
-Every piece of text below was DRAFTED BY CLAUDE (an AI), in unit 7, as a stand-in
-so the test sets exist and the file runs. None of it was written by me.
+The "my own writing" pieces were supplied by the user for criterion 1. The
+"clearly AI" pieces are AI-written. The "clearly human" and "borderline"
+pieces remain AI-drafted stand-ins, so their results are not valid evidence for
+criteria 2 and 3.
 
-  - The "clearly AI" pieces are fine as they are: they really are AI-written.
-  - The "my own writing", "clearly human" and "borderline" pieces are NOT
-    mine, and an AI imitating human writing is the weakest possible test of an
-    AI detector. Criterion 1 says "pieces I wrote myself", and these are not.
-
-Before the unit 8 results are used as evidence for criteria 1, 2 and 3, replace
-the "my own writing", "clearly human" and "borderline" pieces with real writing
-of my own (emails, essays, journal entries, anything I wrote without AI help),
-and keep the lengths roughly similar. The "expected" notes next to each set are
-what I decided BEFORE seeing any score. Do not change them after a run.
+Before treating criteria 2 and 3 as evidence, replace the "clearly human" and
+"borderline" pieces with distinct real writing supplied by the user, keeping
+the lengths roughly similar. The "expected" notes next to each set are what
+was decided BEFORE seeing any score. Do not change them after a run.
 ──────────────────────────────────────────────────────────────────────────────
 
 How the criteria in criteria.md map onto the scenarios here (one each):
@@ -69,66 +65,63 @@ To check this file alone, without the service:
 
 OWN_WRITING = [
     # Expressive pieces (7)
-    "My grandmother kept her tomato plants in old paint cans, which drove my "
-    "grandfather up the wall. He said real gardens had dirt and rows. She said "
-    "real gardens had tomatoes. By August she had more than she could eat and "
-    "he was sneaking them off the porch rail when he thought nobody saw. I "
-    "still can't smell a tomato leaf without hearing the screen door slam and "
-    "the two of them arguing about nothing, happily, for forty years.",
+    "The ceramic mug slipped from the soapy sponge right into the sink drain, "
+    "splitting cleanly across the handle before I could catch it. I tried "
+    "gluing the pieces back together with super glue, but the seam leaked "
+    "coffee on my desk five minutes into the work call. I finally threw the "
+    "whole thing away and mourned my favorite mug with a sigh.",
 
-    "Moved into the new place on Tuesday and the first thing that broke was "
-    "the kettle. Not a great sign. The landlord says the radiator knocks "
-    "because it's 'settling', which I'm choosing to believe. Last night I lay "
-    "awake counting the knocks. Somewhere around two hundred I realised it was "
-    "keeping a kind of rhythm, and then I was asleep. This morning I made tea "
-    "in a saucepan and honestly it tasted fine.",
+    "The morning bus crawled down the avenue while rain smeared diagonal "
+    "tracks across the steamed-up window beside my face. I watched an old man "
+    "in a bright yellow raincoat carefully shelter a soaked stray cat under "
+    "his umbrella at the crossing. The simple kindness made the damp, freezing "
+    "commute feel a little less gray and tedious.",
 
-    "I think group projects are mostly a lesson in who will do the work. In my "
-    "last one four of us signed up and two of us showed up. I'm not bitter. "
-    "Okay, a little bit. But I did learn that a spreadsheet with names and "
-    "deadlines makes people weirdly honest, and that sending 'no worries!' when "
-    "you are worried helps nobody. Next time I'll just say what I need on day "
-    "one, even if it feels pushy.",
+    "My dad always checked every single locked door in the house three "
+    "separate times before he finally went to bed. I remember standing in the "
+    "dim hallway during a late-night storm while he solemnly clicked the "
+    "deadbolt again with his thumb. It drove us crazy growing up, but now I "
+    "catch myself doing the exact same thing every night.",
 
-    "The market closes at six / but the fish man starts packing at five, / ice "
-    "sliding off the crates in grey slush, / his knife wiped twice on the same "
-    "rag. / He nods at me like we have a deal. / We don't. I only come for the "
-    "lemons. / Still, tomorrow I'll buy something with a face on it, / just to "
-    "see if he smiles.",
+    "I bought a watercolor set on a whim because I wanted to paint loose "
+    "botanical prints for the living room wall. The paint bled completely out "
+    "of the lines into an uncontrollable, muddy brown puddle the second the "
+    "wet brush hit the heavy paper. I laughed out loud, shut the palette lid, "
+    "and decided modern abstract art wasn't so hard after all.",
 
-    "I failed my driving test the first time because I stopped for a pigeon. "
-    "The examiner said it was a very kind thing to do and also an automatic "
-    "fail, which felt like a lot of information to get in one sentence. I "
-    "passed on the second try. The pigeon, I like to think, is still out there, "
-    "completely unaware of how much it cost me.",
+    "I ran into my old college roommate at the grocery store checkout and "
+    "pretended I didn't see her at first. She asked how my career was going "
+    "while I nervously fumbled with my debit card in the chip reader. I still "
+    "remember the exact way her eyes flicked down to check my bargain-brand "
+    "groceries before she said goodbye.",
 
-    "Dad coached our under-tens team for three seasons without ever learning "
-    "the offside rule. He'd shout 'Spread out!' and then 'Not that far!' and we "
-    "loved him for it. We lost almost every game. What I remember is orange "
-    "slices at half time and the way he clapped for the other team's goals too, "
-    "loudly, like a man at a concert. I try to clap like that now.",
+    "We walked down to the lake for a quick evening picnic just as a sudden "
+    "gust of wind blew our napkins into the water. We sat on the damp wooden "
+    "bench shivering in our light jackets while eating cold sandwiches in the "
+    "dark. It was completely miserable weather, but we laughed so hard our "
+    "stomachs hurt all the way home.",
 
-    "Why does every recipe say 'a pinch of salt' like I was born knowing the "
-    "size of a pinch? I made soup on Sunday using what I thought was a pinch "
-    "and it tasted like the sea had walked into my kitchen. Lesson learned. "
-    "Taste as you go, add less than you think, and keep bread nearby for "
-    "emergencies.",
+    "That heavy brass pocket watch sitting on my bookshelf always reminds me "
+    "of my grandfather's kitchen table. I can still picture him winding it "
+    "slowly every single Sunday afternoon while listening to the baseball game "
+    "on his old radio. Holding the cold metal in my palm makes him feel just a "
+    "little closer again.",
 
     # Deliberately plain pieces (3)
-    "I came to this country four years ago. At first it was hard. I did not "
-    "know many words. I worked in a kitchen and I learned from the other "
-    "workers. Now I can talk to customers. I am still learning. My dream is to "
-    "open my own small shop. I will work hard for it.",
+    "I wake up at seven in the morning, brush my teeth, and turn on the coffee "
+    "maker. While the coffee brews, I feed the cat and toast a piece of bread "
+    "with butter. Then I sit at the kitchen table for twenty minutes to check "
+    "my emails before getting dressed for work.",
 
-    "My school is near my house. I walk there every day. I like my teacher. She "
-    "is kind and she helps me with math. At lunch I sit with my friends. We "
-    "talk about games and food. After school I do my homework. Then I play "
-    "outside. I like my life.",
+    "I drove down to the local grocery store on Tuesday afternoon using the "
+    "main highway route. I parked near the entrance, grabbed a shopping "
+    "basket, and picked up milk, eggs, and fresh vegetables. After paying at "
+    "the register, I loaded the bags into my car and drove straight back home.",
 
-    "Last weekend I went to the lake with my family. We swam and we ate "
-    "sandwiches. The water was cold but nice. My brother caught a small fish. "
-    "He let it go. We stayed until the sun went down. It was a good day. I want "
-    "to go again soon.",
+    "To change a flat tire, you first loosen the lug nuts with a wrench. Next, "
+    "you place the jack under the car frame and pump it until the wheel lifts "
+    "off the ground. Finally, you remove the nuts completely, swap the old "
+    "tire for the spare, and tighten everything back down securely.",
 ]
 
 # ── Criteria 2 and 3: clearly AI, clearly human, borderline ──────────────────
@@ -390,8 +383,8 @@ SCENARIOS = [
         "name": "my own writing",
         "criterion": 1,
         "target": "At most 1 of 10 own pieces labelled high-confidence AI, every trial",
-        # ⚠️ Stand-ins drafted by Claude. Replace with real writing of your own
-        # before using the results as evidence. See the note at the top.
+        # User-supplied writing: seven expressive pieces followed by three
+        # deliberately plain pieces, as required by criterion 1.
         "texts": OWN_WRITING,
         "check": check_false_positives,
     },
