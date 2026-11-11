@@ -903,6 +903,32 @@ The script also wrote `results/flood_2026-11-10_1816.md` with the same run. The 
 
 README: *The run of status codes when I pushed past it* is filled in with the pasted command, the status-code run, and a short read of what the log confirmed. *Rate Limiting* is now fully answered.
 
+**Step 3. Finish the audit log, and check one entry by eye**
+
+No code change was needed here: `audit.log_decision` was already writing all nine required fields for every decision since unit 7, Milestone 5, step 2 (`timestamp`, `content_id`, `creator_id`, `guess`, `model_score`, `style_score`, `combined_score`, `label`, `status`). What this step adds is proof, not code: every decided entry in the log was checked, and one was read by eye the way a stranger would.
+
+**The check.** All 8 `decided` entries currently in `logs/audit.jsonl` were scanned for a missing field. None was found; every field is present and non-null in every one.
+
+**Reading one entry by eye**, without opening any code:
+
+```json
+{
+  "timestamp": "2026-10-30T20:31:34+00:00",
+  "content_id": "1cfcb48a-d890-412f-bc0a-357a63d8138b",
+  "creator_id": "writer_ana",
+  "guess": "ai",
+  "model_score": 0.8394,
+  "style_score": 1.0,
+  "combined_score": 0.9197,
+  "label": "Our checks found signs that this may have been written with an AI tool. We can't be sure, and we sometimes get this wrong. If you wrote it yourself, you can appeal and explain how you wrote it, and your appeal will be recorded and marked for review.",
+  "status": "decided"
+}
+```
+
+Could someone reconstruct the decision from this, without the code? Using only this line and the rule written out in the README's *Signals and Scoring*: average the two scores, pull toward 0.5 if they are more than 0.30 apart. Here the gap is `|0.8394 − 1.0| = 0.1606`, under 0.30, so no pull applies and the average alone should be the combined score: `(0.8394 + 1.0) / 2 = 0.9197`. That is exactly the `combined_score` logged. The guess follows from the README's thresholds (0.9197 is at or above 0.85, so "ai"), and the label is word-for-word the "AI" label written there. Every step checks out by hand, with nothing invented. **Yes: who submitted it, what each signal said, how the two numbers became one, what that was called, and the exact words the writer was shown are all there.**
+
+**What it can't reconstruct, said plainly.** The submitted text itself is not logged, by design: the nine fields are the decision, not the content, and the service's job (unit 8's attack run especially) means a lot of adversarial text passing through that need not sit in a permanent file. A bigger limit: the entry doesn't record *which* thresholds or weights were used. If `config.py`'s numbers are ever changed later, this entry's arithmetic would need the config as it stood on 2026-10-30, not whatever it is at the time of reading. Today that is recoverable from git history, but the log entry alone doesn't say it. That is a real gap, written down rather than hidden, and it is not fixed in this step since the brief only asks to check, not to extend the schema further.
+
 ---
 
 ## Features
