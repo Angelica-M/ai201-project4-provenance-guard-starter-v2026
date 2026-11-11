@@ -652,11 +652,21 @@ junk is no way around it.
 
 **The run of status codes when I pushed past it:**
 
-<!-- python run_attacks.py --flood 15 -->
-
+```bash
+$ python run_attacks.py --flood 15
+15 submissions as 'flood_tester' against http://127.0.0.1:5000
 ```
 
 ```
+200 200 200 200 200 429 429 429 429 429 429 429 429 429 429
+```
+
+Exactly 5 pass, then every one after is `429`, which is my 5-per-minute limit
+working exactly as set. `GET /log` confirms both halves: the 5 passing requests
+each wrote a normal `decided` entry (with real scores and a label), and all 10
+refused requests wrote a `rejected` entry with `"reason": "rate_limited"` and
+`"limit": "5 per 1 minute"`, attributed to `flood_tester`. Nothing was lost
+silently.
 
 ---
 

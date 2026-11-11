@@ -889,6 +889,20 @@ A side effect worth understanding: switching limiting on would have made the 29 
 
 README: the first three *Rate Limiting* fields (*My limits*, *Why those numbers*, *What a caller counts as*) are filled in. The pasted run of status codes comes in step 2.
 
+**Step 2. Test it: `python run_attacks.py --flood 15`**
+
+Run for real against the live service (`python app.py`, then the flood command in a second terminal), not simulated:
+
+```
+200 200 200 200 200 429 429 429 429 429 429 429 429 429 429
+```
+
+Exactly 5 pass and the rest are refused, which is the 5-per-minute limit chosen in step 1 working exactly as set. `GET /log` was read back to check both halves landed, not just the response codes: the log held 5 new `decided` entries (real scores, a real label, attributed to `flood_tester`) and 10 new `rejected` entries, each with `"reason": "rate_limited"` and `"limit": "5 per 1 minute"`. Nothing was lost silently, which is the whole reason a rejection gets logged at all.
+
+The script also wrote `results/flood_2026-11-10_1816.md` with the same run. The starter's note that `logs/` and `results/` are deliberately not ignored means both are meant to be committed as evidence, so both go in with this step.
+
+README: *The run of status codes when I pushed past it* is filled in with the pasted command, the status-code run, and a short read of what the log confirmed. *Rate Limiting* is now fully answered.
+
 ---
 
 ## Features
