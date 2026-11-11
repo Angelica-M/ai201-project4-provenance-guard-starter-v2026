@@ -822,14 +822,100 @@ From `results/run_2026-11-10_1928_before.md`, produced by
 records `{"alive_after": true, "new_rejections": 8}` for this trial.
 
 Trial 1 of **my own writing** from the same report shows the two plain-text
-false positives (items 8 and 9):
+false positives (items 8 and 9). These are the selected fields from all ten
+results:
 
 ```json
 [
-  {"guess":"ai","confidence":0.9053,"model_score":0.8106,"style_score":1.0,"sent":"I wake up at seven in the morning, brush my teeth, and turn on the cof"},
-  {"guess":"ai","confidence":0.8957,"model_score":0.7913,"style_score":1.0,"sent":"I drove down to the local grocery store on Tuesday afternoon using the"}
+  {"status":200,"guess":"unsure","confidence":0.6052,"model_score":0.3968,"style_score":0.873,"sent":"The ceramic mug slipped from the soapy sponge right into the sink drai"},
+  {"status":200,"guess":"unsure","confidence":0.5212,"model_score":0.1419,"style_score":0.943,"sent":"The morning bus crawled down the avenue while rain smeared diagonal tr"},
+  {"status":200,"guess":"unsure","confidence":0.756,"model_score":0.5919,"style_score":1.0,"sent":"My dad always checked every single locked door in the house three sepa"},
+  {"status":200,"guess":"unsure","confidence":0.6247,"model_score":0.3994,"style_score":1.0,"sent":"I bought a watercolor set on a whim because I wanted to paint loose bo"},
+  {"status":200,"guess":"unsure","confidence":0.7191,"model_score":0.5442,"style_score":1.0,"sent":"I ran into my old college roommate at the grocery store checkout and p"},
+  {"status":200,"guess":"unsure","confidence":0.7798,"model_score":0.6255,"style_score":0.957,"sent":"We walked down to the lake for a quick evening picnic just as a sudden"},
+  {"status":200,"guess":"unsure","confidence":0.634,"model_score":0.4289,"style_score":0.928,"sent":"That heavy brass pocket watch sitting on my bookshelf always reminds m"},
+  {"status":200,"guess":"ai","confidence":0.9053,"model_score":0.8106,"style_score":1.0,"sent":"I wake up at seven in the morning, brush my teeth, and turn on the cof"},
+  {"status":200,"guess":"ai","confidence":0.8957,"model_score":0.7913,"style_score":1.0,"sent":"I drove down to the local grocery store on Tuesday afternoon using the"},
+  {"status":200,"guess":"unsure","confidence":0.8089,"model_score":0.6569,"style_score":0.976,"sent":"To change a flat tire, you first loosen the lug nuts with a wrench. Ne"}
 ]
 ```
+
+Source: `results/run_2026-11-10_1928_before.md`, produced by
+`run_eval.py::run_submit_trial`.
+
+**Criterion 2 — score spread, Trial 1**
+
+These are real response fields from the report. The human half is still an
+AI-drafted stand-in, so this passing measurement is provisional.
+
+```json
+[
+  {"status":200,"guess":"ai","confidence":0.8851,"model_score":0.7941,"style_score":0.976,"sent":"In today's fast-paced digital landscape, effective communication is mo"},
+  {"status":200,"guess":"ai","confidence":0.8929,"model_score":0.8459,"style_score":0.94,"sent":"Regular exercise offers numerous benefits for both physical and mental"},
+  {"status":200,"guess":"ai","confidence":0.8974,"model_score":0.8268,"style_score":0.968,"sent":"The rapid advancement of artificial intelligence presents both opportu"},
+  {"status":200,"guess":"ai","confidence":0.9009,"model_score":0.8018,"style_score":1.0,"sent":"Sustainable travel is becoming increasingly important as more people s"},
+  {"status":200,"guess":"ai","confidence":0.9245,"model_score":0.849,"style_score":1.0,"sent":"Time management is a crucial skill that can significantly impact both "},
+  {"status":200,"guess":"human","confidence":0.2593,"model_score":0.4167,"style_score":0.076,"sent":"The ferry smelled of diesel and wet dog. Tomasz, who had not spoken si"},
+  {"status":200,"guess":"human","confidence":0.115,"model_score":0.2301,"style_score":0.0,"sent":"Okay so the thing nobody tells you about sourdough is that it's basica"},
+  {"status":200,"guess":"unsure","confidence":0.4103,"model_score":0.1268,"style_score":0.632,"sent":"Funeral on Thursday, rain, the kind that gets in behind your collar. U"},
+  {"status":200,"guess":"human","confidence":0.3389,"model_score":0.5398,"style_score":0.0,"sent":"There's a crack in the pavement outside the chemist that I have steppe"},
+  {"status":200,"guess":"human","confidence":0.2682,"model_score":0.3305,"style_score":0.206,"sent":"Nobody warned me that learning the cello at forty-three means sounding"}
+]
+```
+
+Source: `results/run_2026-11-10_1928_before.md`, produced by
+`run_eval.py::run_submit_trial`.
+
+**Criterion 3 — label coverage, Trial 1**
+
+These are real response fields from the report. The clearly-human and
+borderline examples remain AI-drafted stand-ins, so this passing result is
+provisional.
+
+```json
+[
+  {"status":200,"guess":"ai","confidence":0.8851,"model_score":0.7941,"style_score":0.976,"sent":"In today's fast-paced digital landscape, effective communication is mo"},
+  {"status":200,"guess":"ai","confidence":0.8929,"model_score":0.8459,"style_score":0.94,"sent":"Regular exercise offers numerous benefits for both physical and mental"},
+  {"status":200,"guess":"ai","confidence":0.8974,"model_score":0.8268,"style_score":0.968,"sent":"The rapid advancement of artificial intelligence presents both opportu"},
+  {"status":200,"guess":"ai","confidence":0.9009,"model_score":0.8018,"style_score":1.0,"sent":"Sustainable travel is becoming increasingly important as more people s"},
+  {"status":200,"guess":"human","confidence":0.2593,"model_score":0.4167,"style_score":0.076,"sent":"The ferry smelled of diesel and wet dog. Tomasz, who had not spoken si"},
+  {"status":200,"guess":"human","confidence":0.115,"model_score":0.2301,"style_score":0.0,"sent":"Okay so the thing nobody tells you about sourdough is that it's basica"},
+  {"status":200,"guess":"unsure","confidence":0.4103,"model_score":0.1268,"style_score":0.632,"sent":"Funeral on Thursday, rain, the kind that gets in behind your collar. U"},
+  {"status":200,"guess":"human","confidence":0.3389,"model_score":0.5398,"style_score":0.0,"sent":"There's a crack in the pavement outside the chemist that I have steppe"},
+  {"status":200,"guess":"unsure","confidence":0.6657,"model_score":0.6285,"style_score":0.703,"sent":"Cities are changing fast, and honestly not always for the better. More"},
+  {"status":200,"guess":"unsure","confidence":0.6105,"model_score":0.6391,"style_score":0.582,"sent":"The committee's findings, while not wholly unexpected, nonetheless war"},
+  {"status":200,"guess":"unsure","confidence":0.724,"model_score":0.713,"style_score":0.735,"sent":"Learning a second language takes patience, and I have learned that the"},
+  {"status":200,"guess":"unsure","confidence":0.7827,"model_score":0.8014,"style_score":0.764,"sent":"Last summer I volunteered at a local animal shelter, and it taught me "}
+]
+```
+
+Source: `results/run_2026-11-10_1928_before.md`, produced by
+`run_eval.py::run_submit_trial`.
+
+**Criterion 4 — appeal path, Trial 1**
+
+```json
+[
+  {"kind":"appeal","sent":"In today's fast-paced digital landscape, effective communication is mo","submit_status":200,"content_id":"76fb4b1e-f558-49eb-a537-f52c3978680e","appeal_status":200,"state":"under_review","decision_unchanged":true,"appeal_logged":true},
+  {"kind":"appeal","sent":"Regular exercise offers numerous benefits for both physical and mental","submit_status":200,"content_id":"796bbb63-c41b-483b-b0ce-e54f410441b7","appeal_status":200,"state":"under_review","decision_unchanged":true,"appeal_logged":true},
+  {"kind":"appeal","sent":"The rapid advancement of artificial intelligence presents both opportu","submit_status":200,"content_id":"b303192e-0e2e-40a4-8f97-264bebc9872c","appeal_status":200,"state":"under_review","decision_unchanged":true,"appeal_logged":true},
+  {"kind":"appeal","sent":"Sustainable travel is becoming increasingly important as more people s","submit_status":200,"content_id":"88ed8aaf-6d4b-419f-b2b3-fd6e602f2ec8","appeal_status":200,"state":"under_review","decision_unchanged":true,"appeal_logged":true},
+  {"kind":"appeal","sent":"Time management is a crucial skill that can significantly impact both ","submit_status":200,"content_id":"a9d2d7c6-25ff-4302-910f-d48342816cd9","appeal_status":200,"state":"under_review","decision_unchanged":true,"appeal_logged":true},
+  {"kind":"appeal","sent":"The ferry smelled of diesel and wet dog. Tomasz, who had not spoken si","submit_status":200,"content_id":"dceeb0fd-9429-4b89-b309-e4f5c0f5d863","appeal_status":200,"state":"under_review","decision_unchanged":true,"appeal_logged":true},
+  {"kind":"appeal","sent":"Okay so the thing nobody tells you about sourdough is that it's basica","submit_status":200,"content_id":"2fe5aefe-c593-4bb6-80fc-17b1086452c2","appeal_status":200,"state":"under_review","decision_unchanged":true,"appeal_logged":true},
+  {"kind":"appeal","sent":"Funeral on Thursday, rain, the kind that gets in behind your collar. U","submit_status":200,"content_id":"9dd7d17c-31f0-444e-a3b8-ac5073e73d24","appeal_status":200,"state":"under_review","decision_unchanged":true,"appeal_logged":true},
+  {"kind":"appeal","sent":"There's a crack in the pavement outside the chemist that I have steppe","submit_status":200,"content_id":"647b1403-3b1a-4813-b642-cb17c587899d","appeal_status":200,"state":"under_review","decision_unchanged":true,"appeal_logged":true},
+  {"kind":"appeal","sent":"Nobody warned me that learning the cello at forty-three means sounding","submit_status":200,"content_id":"48f655a7-0128-4a00-b0ce-093047b81868","appeal_status":200,"state":"under_review","decision_unchanged":true,"appeal_logged":true},
+  {"kind":"unknown","content_id":"eval_unknown_9149191e_1","appeal_status":404,"appeal_logged":false},
+  {"kind":"unknown","content_id":"eval_unknown_9149191e_2","appeal_status":404,"appeal_logged":false},
+  {"kind":"unknown","content_id":"eval_unknown_9149191e_3","appeal_status":404,"appeal_logged":false},
+  {"kind":"unknown","content_id":"eval_unknown_9149191e_4","appeal_status":404,"appeal_logged":false},
+  {"kind":"unknown","content_id":"eval_unknown_9149191e_5","appeal_status":404,"appeal_logged":false}
+]
+```
+
+Source: `results/run_2026-11-10_1928_before.md`, produced by
+`run_eval.py::run_appeal_trial`.
 
 **Diagnoses**
 
