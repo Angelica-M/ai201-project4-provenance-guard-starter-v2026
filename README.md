@@ -777,15 +777,15 @@ AI-style text was labelled human at 0.2856.
 
 ## Run Log and Verdicts
 
-<!-- Your five criteria across three trials. `run_eval.py --label before`. -->
+<!-- Before: run_2026-11-10_1928_before.md. After: run_2026-11-10_1929_after.md. -->
 
-| Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
-|---|---|---|---|---|---|
-| 1. Own-writing false positives | At most 1 of 10 labelled AI | missed | missed | missed | MISSED: 2/10 plain pieces labelled AI |
-| 2. Score spread | AI mean at least 0.30 above human; 4/5 each side of 0.50 | met | met | met | MET (provisional: AI-drafted human set) |
-| 3. Label coverage | All labels; 3/4 borderline unsure; real label text | met | met | met | MET (provisional: AI-drafted human/borderline sets) |
-| 4. Appeal path | 10/10 appeals recorded; 5/5 unknown ids refused | met | met | met | MET |
-| 5. Bad input | 8/8 JSON 4xx errors, service alive, 8 rejections | met | met | met | MET; see 429 note below |
+| Criterion | Target | Before 1 | Before 2 | Before 3 | Before verdict | After 1 | After 2 | After 3 | After verdict |
+|---|---|---|---|---|---|---|---|---|---|
+| 1. Own-writing false positives | At most 1 of 10 labelled AI | missed | missed | missed | MISSED: 2/10 | missed | missed | missed | MISSED: 2/10 |
+| 2. Score spread | AI mean at least 0.30 above human; 4/5 each side of 0.50 | met | met | met | MET, provisional | met | met | met | MET, provisional |
+| 3. Label coverage | All labels; 3/4 borderline unsure; real label text | met | met | met | MET, provisional | met | met | met | MET, provisional |
+| 4. Appeal path | 10/10 appeals recorded; 5/5 unknown ids refused | met | met | met | MET | met | met | met | MET |
+| 5. Bad input | 8/8 JSON 4xx errors, service alive, 8 rejections | met | met | met | MET; see 429 note below | met | met | met | MET; see 429 note below |
 
 Criterion 1 now uses the ten pieces I supplied. It missed in all three trials:
 2 of 10 were labelled high-confidence AI, against the limit of 1. The two
@@ -793,7 +793,10 @@ false positives were the plain routine description (0.9053) and grocery-trip
 description (0.8957); both have a style score of 1.0. Criteria 2 and 3 still
 use the AI-drafted clearly-human and borderline stand-ins documented in
 `scenarios.py`, so their passing results are provisional until those sets are
-replaced with my own writing.
+replaced with my own writing. The `before` report is
+`results/run_2026-11-10_1928_before.md`; the `after` report is
+`results/run_2026-11-10_1929_after.md`. Comparing them shows that the input
+validation change leaves all five criterion outcomes unchanged.
 
 Criterion 5 met its written 4xx contract, but one or two requests without a
 usable `creator_id` received 429 in some trials. Those requests were rejected
@@ -916,6 +919,102 @@ Source: `results/run_2026-11-10_1928_before.md`, produced by
 
 Source: `results/run_2026-11-10_1928_before.md`, produced by
 `run_eval.py::run_appeal_trial`.
+
+**After run — Trial 1 output for all five criteria**
+
+The following selected fields are copied from
+`results/run_2026-11-10_1929_after.md`. Criteria 2 and 3 still use placeholder
+human/borderline inputs, so those two results remain provisional.
+
+*Criterion 1 — `run_eval.py::run_submit_trial`:*
+
+```json
+[
+  {"status":200,"guess":"unsure","confidence":0.6052,"model_score":0.3968,"style_score":0.873},
+  {"status":200,"guess":"unsure","confidence":0.5212,"model_score":0.1419,"style_score":0.943},
+  {"status":200,"guess":"unsure","confidence":0.756,"model_score":0.5919,"style_score":1.0},
+  {"status":200,"guess":"unsure","confidence":0.6247,"model_score":0.3994,"style_score":1.0},
+  {"status":200,"guess":"unsure","confidence":0.7191,"model_score":0.5442,"style_score":1.0},
+  {"status":200,"guess":"unsure","confidence":0.7798,"model_score":0.6255,"style_score":0.957},
+  {"status":200,"guess":"unsure","confidence":0.634,"model_score":0.4289,"style_score":0.928},
+  {"status":200,"guess":"ai","confidence":0.9053,"model_score":0.8106,"style_score":1.0},
+  {"status":200,"guess":"ai","confidence":0.8957,"model_score":0.7913,"style_score":1.0},
+  {"status":200,"guess":"unsure","confidence":0.8089,"model_score":0.6569,"style_score":0.976}
+]
+```
+
+*Criterion 2 — `run_eval.py::run_submit_trial`:*
+
+```json
+[
+  {"status":200,"guess":"ai","confidence":0.8851,"model_score":0.7941,"style_score":0.976},
+  {"status":200,"guess":"ai","confidence":0.8929,"model_score":0.8459,"style_score":0.94},
+  {"status":200,"guess":"ai","confidence":0.8974,"model_score":0.8268,"style_score":0.968},
+  {"status":200,"guess":"ai","confidence":0.9009,"model_score":0.8018,"style_score":1.0},
+  {"status":200,"guess":"ai","confidence":0.9245,"model_score":0.849,"style_score":1.0},
+  {"status":200,"guess":"human","confidence":0.2593,"model_score":0.4167,"style_score":0.076},
+  {"status":200,"guess":"human","confidence":0.115,"model_score":0.2301,"style_score":0.0},
+  {"status":200,"guess":"unsure","confidence":0.4103,"model_score":0.1268,"style_score":0.632},
+  {"status":200,"guess":"human","confidence":0.3389,"model_score":0.5398,"style_score":0.0},
+  {"status":200,"guess":"human","confidence":0.2682,"model_score":0.3305,"style_score":0.206}
+]
+```
+
+*Criterion 3 — `run_eval.py::run_submit_trial`:*
+
+```json
+[
+  {"status":200,"guess":"ai","confidence":0.8851,"model_score":0.7941,"style_score":0.976},
+  {"status":200,"guess":"ai","confidence":0.8929,"model_score":0.8459,"style_score":0.94},
+  {"status":200,"guess":"ai","confidence":0.8974,"model_score":0.8268,"style_score":0.968},
+  {"status":200,"guess":"ai","confidence":0.9009,"model_score":0.8018,"style_score":1.0},
+  {"status":200,"guess":"human","confidence":0.2593,"model_score":0.4167,"style_score":0.076},
+  {"status":200,"guess":"human","confidence":0.115,"model_score":0.2301,"style_score":0.0},
+  {"status":200,"guess":"unsure","confidence":0.4103,"model_score":0.1268,"style_score":0.632},
+  {"status":200,"guess":"human","confidence":0.3389,"model_score":0.5398,"style_score":0.0},
+  {"status":200,"guess":"unsure","confidence":0.6657,"model_score":0.6285,"style_score":0.703},
+  {"status":200,"guess":"unsure","confidence":0.6105,"model_score":0.6391,"style_score":0.582},
+  {"status":200,"guess":"unsure","confidence":0.724,"model_score":0.713,"style_score":0.735},
+  {"status":200,"guess":"unsure","confidence":0.7827,"model_score":0.8014,"style_score":0.764}
+]
+```
+
+*Criterion 4 — `run_eval.py::run_appeal_trial`:*
+
+```json
+[
+  {"kind":"appeal","submit_status":200,"appeal_status":200,"state":"under_review","decision_unchanged":true,"appeal_logged":true},
+  {"kind":"appeal","submit_status":200,"appeal_status":200,"state":"under_review","decision_unchanged":true,"appeal_logged":true},
+  {"kind":"appeal","submit_status":200,"appeal_status":200,"state":"under_review","decision_unchanged":true,"appeal_logged":true},
+  {"kind":"appeal","submit_status":200,"appeal_status":200,"state":"under_review","decision_unchanged":true,"appeal_logged":true},
+  {"kind":"appeal","submit_status":200,"appeal_status":200,"state":"under_review","decision_unchanged":true,"appeal_logged":true},
+  {"kind":"appeal","submit_status":200,"appeal_status":200,"state":"under_review","decision_unchanged":true,"appeal_logged":true},
+  {"kind":"appeal","submit_status":200,"appeal_status":200,"state":"under_review","decision_unchanged":true,"appeal_logged":true},
+  {"kind":"appeal","submit_status":200,"appeal_status":200,"state":"under_review","decision_unchanged":true,"appeal_logged":true},
+  {"kind":"appeal","submit_status":200,"appeal_status":200,"state":"under_review","decision_unchanged":true,"appeal_logged":true},
+  {"kind":"appeal","submit_status":200,"appeal_status":200,"state":"under_review","decision_unchanged":true,"appeal_logged":true},
+  {"kind":"unknown","appeal_status":404,"appeal_logged":false},
+  {"kind":"unknown","appeal_status":404,"appeal_logged":false},
+  {"kind":"unknown","appeal_status":404,"appeal_logged":false},
+  {"kind":"unknown","appeal_status":404,"appeal_logged":false},
+  {"kind":"unknown","appeal_status":404,"appeal_logged":false}
+]
+```
+
+*Criterion 5 — `run_eval.py::run_submit_trial`:*
+
+```json
+[
+  {"status":400,"error":"invalid_input","message":"text must be a non-empty string."},
+  {"status":400,"error":"invalid_input","message":"text must be a non-empty string."},
+  {"status":400,"error":"invalid_input","message":"text must be a non-empty string."},
+  {"status":400,"error":"invalid_input","message":"text must be a non-empty string."},
+  {"status":400,"error":"invalid_input","message":"text must be a non-empty string."},
+  {"status":400,"error":"invalid_input","message":"creator_id must be a non-empty string."},
+  {"status":400,"error":"invalid_input","message":"Send a JSON object with text and creator_id."},
+  {"status":413,"error":"text_too_long","message":"text is over 20,000 characters."}
+]
+```
 
 **Diagnoses**
 
