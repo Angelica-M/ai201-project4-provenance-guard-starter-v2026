@@ -577,6 +577,23 @@ How to read it:
   full stops as punctuation, but the numbers I had checked did not, so I made
   the code match the evidence.
 
+**Moment 3: Unit 8 evaluation and input validation**
+
+- *What I asked for:* Help interpreting the full attack run, audit entries, and
+  three-trial evaluation, then help choosing one fix that followed the
+  diagnosis.
+- *What came back:* Copilot grouped the failures by signal and label behavior,
+  identified that control-character, punctuation-only, and emoji-only text
+  were being scored, and proposed a route-level validation check with tests.
+- *What I changed:* I added checks that reject control characters and text
+  without a letter or number while retaining Arabic text. After the change,
+  those three malformed attacks changed from 200 decisions to 400 rejections;
+  the attack count improved from 15 broken to 12. The evasion attacks and the
+  two plain-writing false positives did not improve, so I kept those results
+  visible rather than claiming the change solved them. I also used Copilot to
+  organize the README evidence, then checked the recorded scores against the
+  generated reports.
+
 **One more thing to be clear about.** The example texts in the Sample Run were
 drafted by Claude as stand-ins, and the writers named there (`writer_ana`,
 `writer_ben`, `writer_cara`) are made up. The clearly-human and borderline
@@ -1212,26 +1229,50 @@ replaced with my own writing.
 <!-- For each attack still getting through and each criterion still missed:
      what you'd do, and why you stopped. -->
 
-The remaining evasion cases need better evidence or a more informative review
-path, not a threshold lowered just to make this test pass. Lowering the 0.85 AI
-line would make the unsure outputs look more decisive but would increase the
-risk to plain, formal, and second-language writers. PI01 and PI02 also remain
-human-labelled because the two signals measure predictability and sentence
-shape, not authorship or the truth of an instruction embedded in the text.
+The after run still has 12 broken attacks: EV01–EV10 and PI01–PI02. The input
+validation improvement fixed MF03, MF04 and MF06; the remaining failures and
+the reason I stopped are below.
 
-MF05, the long single-token input, is still accepted and scored; I stopped
-short of banning unusual words because that would reject legitimate names and
-technical terms. MF07's Arabic is valid text, not malformed input. RQ10 and
-RQ11 remain untested at the route because the fallback address quota returns
-429 first. The evaluation harness also encountered 429s for creator-less
-requests after earlier requests from the same local address; a production
-evaluation should isolate the limiter state or run after its window resets.
+- **EV02, EV05 and EV06 are labelled human.** I would test an additional
+  authorship signal that is less sensitive to sentence chopping and heavy
+  editing. I stopped before adding one because the project has no validated
+  training corpus for it, and changing the current signal weights or lowering
+  the 0.85 AI threshold risks worsening the two real plain-writing false
+  positives already measured.
+- **EV01, EV03, EV04, EV07, EV08, EV09 and EV10 are labelled unsure.** I would
+  test a longer-context model and evaluate it against adversarial edits, with
+  the AI threshold held fixed at first. I stopped because these attacks exploit
+  different surface cues (typos, quotations, unusual words, punctuation,
+  short input, a human opening, and repeated stanzas); a single weight or
+  threshold change is not supported by this small set. Keeping them unsure is
+  safer than calling them human, but it does not detect their AI origin.
+- **PI01 and PI02 are labelled human.** I would use trusted provenance or
+  authorship evidence alongside text scoring; treating instruction-like phrases
+  as proof of authorship would be easy to evade. I stopped because this service
+  receives only text and a caller-chosen creator id, so it has no independent
+  source evidence to verify.
+- **Criterion 1 remains MISSED, 2/10 in all six trials.** I would collect a
+  larger and more varied set of genuine plain human writing before recalibrating
+  the style signal or the 0.85 threshold. I stopped short of raising the
+  threshold: that could move these two scores (0.8957 and 0.9053) to unsure, but
+  it would also move several clearly-AI stand-ins (0.8851–0.9009) out of the AI
+  label, and the current sample is too small to choose that trade safely.
+- **Criteria 2 and 3 are still provisional, not validated.** I need five
+  distinct clearly-human pieces and four borderline pieces I wrote myself,
+  then must rerun the three trials. I stopped because those samples were not
+  supplied; keeping the AI-drafted stand-ins is more honest than claiming they
+  are human ground truth.
+- **RQ10 and RQ11 did not reach the route, and MF05 is still accepted for
+  scoring.** I would rerun the content-type cases after clearing or isolating
+  the address-based limiter, and consider a token-specific input policy for
+  extreme single words. I stopped because the rate limiter correctly rejected
+  those requests before route inspection, while banning long words could reject
+  valid names or technical terms; neither is evidence of a crash or bad label.
 
-Criterion 1 is now measured on my supplied writing and misses its target: the
-two plain routine descriptions are called AI in every trial. Criteria 2 and 3
-still need five distinct clearly-human pieces and four borderline pieces of my
-own; their current stand-ins are AI-drafted, so those criteria cannot yet be
-claimed as validated.
+MF07's right-to-left Arabic is valid writing and remains accepted intentionally.
+The evaluation harness also hit 429s for creator-less requests after earlier
+requests from the same local address; isolated limiter state or a fresh window
+is needed to measure the route response cleanly.
 
 **Repository URL:** https://github.com/Angelica-M/ai201-project4-provenance-guard-starter-v2026
 
