@@ -63,15 +63,16 @@ def _error(status, code, message, creator_id=None):
 
 
 # ── Rate limiting — UNIT 8 ────────────────────────────────────────────────────
-# Off until you turn it on. In unit 8, Milestone 1:
+# ON as of unit 8, Milestone 1. The three steps it took, kept here so the next
+# reader can see how the pieces fit:
 #
-#   1. Set RATE_LIMITING_ENABLED = True in config.py (or AI201_RATE_LIMITS=1)
-#   2. Choose your numbers there
-#   3. Uncomment the @limiter.limit(...) line on /submit below
+#   1. RATE_LIMITING_ENABLED = True in config.py
+#   2. The numbers chosen there, with the reasoning beside them
+#   3. The @limiter.limit(...) line on /submit below, uncommented
 #
-# The order doesn't matter. While limiting is off, that decorator is a no-op
-# that quietly does nothing, so uncommenting it early costs you nothing — but
-# it also means no 429 until you've done step 1.
+# All three are needed. If limiting is off in config, the decorator is a no-op
+# that quietly does nothing, and if the decorator is commented out, nothing is
+# limited even though config says it is on. GET /health reports the config half.
 #
 # The storage backend is preconfigured, which stops Flask-Limiter printing a
 # warning on every start. In-memory is right for one laptop and wrong for
@@ -176,10 +177,10 @@ def health():
     })
 
 
-# ── The two routes built in this project ─────────────────────────────────────────────────────────────────────────────────────────────────
+# ── The two routes built in this project ──────────────────────────────────────
 
 @app.post("/submit")
-# @limiter.limit(f"{config.RATE_LIMIT_PER_MINUTE}/minute;{config.RATE_LIMIT_PER_DAY}/day")
+@limiter.limit(f"{config.RATE_LIMIT_PER_MINUTE}/minute;{config.RATE_LIMIT_PER_DAY}/day")
 def submit():
     """
     Take a piece of text, decide about it, log the decision, answer.

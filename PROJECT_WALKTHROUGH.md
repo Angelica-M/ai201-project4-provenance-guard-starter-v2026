@@ -840,6 +840,57 @@ All four test suites also still pass (122 tests): `test_app.py` 29, `test_scorin
 
 ---
 
+## Unit 8: Testing the safety layer
+
+Unit 7 built the service. Unit 8 tests it: the service is limited and logged properly, then attacked with an attack set I didn't write, then measured against the five criteria, diagnosed, and improved once. Everything below is in the same repository.
+
+### Unit 8, Milestone 1: Rate limiting and the finished audit log
+
+**The idea:** Two things have to be true before anyone attacks the service. A caller can't hammer it without limit, and everything that happens to it, including every request it turns away, leaves a trace that can be read back later. An attack that shows up only as an absence is one that is never found.
+
+**Where the answers went:** The settings are in [config.py](config.py) and the route in [app.py](app.py). The README's *Rate Limiting* section holds the numbers, the reasoning and the pasted status codes. Each step below was committed on its own.
+
+**Step 1. Turn rate limiting on for `/submit`**
+
+Three small changes, all three needed:
+
+1. `RATE_LIMITING_ENABLED = True` in [config.py](config.py).
+2. The numbers chosen there: **5 per minute, 50 per day.**
+3. The `@limiter.limit(...)` line above `submit()` in [app.py](app.py), uncommented.
+
+Why all three: if config says on but the decorator is commented out, nothing is limited. If the decorator is there but config says off, it is a quiet no-op. `GET /health` reports only the config half, so it can say "on" while nothing is actually limited. That is why a test checks the decorator is really attached.
+
+**Choosing the numbers.** A *rate limit* caps how many requests one caller can make in a window of time. Here it matters because each submission runs a language model (real time and CPU), and because each answer leaks a little about where the thresholds are. A script that sends a thousand slightly different texts and watches the labels can map the thresholds and then write text that lands just under them. A limit can't stop that, only slow it. The numbers came from setting two people side by side:
+
+| | A real writer | A script mapping the thresholds |
+| --- | --- | --- |
+| Speed | A person needs tens of seconds per round trip, so an impatient writer is at 3 or 4 a minute at most | As fast as the service answers |
+| Volume | A heavy honest day is perhaps 15 to 25 submissions | About 7 probes to pin one threshold on one text to within 0.01, so mapping a range of texts takes hundreds |
+
+- **5 a minute:** room for the impatient writer, and one submission every 12 seconds is the fastest any single caller can go. It also protects the machine.
+- **50 a day:** about double the heaviest honest day, so a real writer shouldn't meet it. It is the number that actually slows a script: a thousand probes from one identity takes about 20 days, against 5 at the starter's 200 a day.
+- Rejected: 10 a minute (lets a script run twice as fast, no benefit to any writer) and a day limit under about 30 (honest revising of several pieces could hit it).
+
+**What counts as a "caller" (and the hole in it).** The starter counts a request against its `creator_id` when it has a usable one, and against the network address when it doesn't. I kept that, and wrote down why and what it costs:
+
+| Count by | Good for | Fails when |
+| --- | --- | --- |
+| `creator_id` | Treating each writer separately | The caller picks their own id, so a script that invents a new one per request looks like a thousand callers and is **never limited** |
+| Network address | Hard to dodge | A household, school or library shares one allowance. Here every request, including my own tests, comes from `127.0.0.1`, so everything would share one bucket and block my evaluation harness and the attack run |
+
+I kept `creator_id` first because the project's tooling depends on it and because shared allowances punish honest writers, the people the service exists to protect. The attack set gives every attack its own `creator_id` (the script itself says so), so those attacks will *not* trip this limit. I expect the attack run to show that, and a real deployment would count both. Two more design points:
+
+- Only `/submit` is limited. `/appeal`, `/log`, `/health` and `/ping` are not, so a writer who has used up their submissions can still appeal a label. A test checks this.
+- Every request to `/submit` counts, including ones refused for bad input, so sending junk is no way around the limit.
+
+**Tests** ([test_app.py](test_app.py), 29 to 43 tests). The limit has its own test class, covering: the first 5 pass and the rest get `429`; the refusal has the standard error shape and names the limit; every limited request is logged as a rejection with its creator; limited requests never reach the model or make a decision; one creator being limited doesn't limit another; requests with no usable `creator_id` are counted by address and never crash the key function; junk requests count; the other routes aren't limited; a limited writer can still appeal; and the limit resets.
+
+A side effect worth understanding: switching limiting on would have made the 29 existing tests fail (they submit many times as one creator). Rather than weaken the limit, each test now chooses: limiting is off by default in the test setup and on only in the tests that are about it, with the limiter's counts cleared before and after every test so one test can't affect the next. The starter allowed turning limiting on through an environment variable. Setting the value directly to `True` (as the milestone asks) makes that variable inert, so a note was added to [RUNNING.md](RUNNING.md). A stray over-long divider line that an earlier edit of mine left in `app.py` was tidied.
+
+README: the first three *Rate Limiting* fields (*My limits*, *Why those numbers*, *What a caller counts as*) are filled in. The pasted run of status codes comes in step 2.
+
+---
+
 ## Features
 
 - **A `POST /submit` endpoint.** Takes JSON with `text` and `creator_id`. Returns JSON with a `content_id`, a guess, a confidence score, and the label text.

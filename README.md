@@ -590,17 +590,65 @@ tests.
 
 ## Rate Limiting
 
-**My limits:** ___ per minute, ___ per day
+**My limits:** 5 per minute, 50 per day, for each caller, on `POST /submit` only.
+(Set in `config.py` as `RATE_LIMIT_PER_MINUTE` and `RATE_LIMIT_PER_DAY`, with
+`RATE_LIMITING_ENABLED = True`.) `GET /health` reports that limiting is on.
 
 **Why those numbers and not others:**
-<!-- Think about two people: a real writer submitting their own work a few
-     times an hour, and a script sending a thousand variations to map your
-     thresholds. Your numbers have to be liveable for the first and hostile to
-     the second. -->
 
-**What a caller counts as:** <!-- per address, or per creator_id? They fail
-differently — one script can look like a thousand callers, and one household
-can look like one. -->
+A **rate limit** caps how many requests one caller can make in a window of time.
+Here it matters for two reasons: each submission runs a language model, which
+costs real time, and each answer tells the caller a little about where my
+thresholds sit. A script that sends a thousand slightly different texts and
+watches which label comes back can *map* those thresholds, then write text that
+lands just under them. A limit can't stop that, but it can make it slow. I chose
+the numbers by setting the two people the brief describes side by side:
+
+| | A real writer | A script mapping my thresholds |
+|---|---|---|
+| What they do | Submit a piece, read the label, maybe edit and submit again | Send hundreds or thousands of variations and watch the labels |
+| How fast | Each round trip takes a person tens of seconds, so even an impatient writer manages 3 or 4 a minute at most | As fast as the service answers |
+| How many in a day | A heavy honest day (many pieces, many revisions) is perhaps 15 to 25 | Finding one threshold on one text by repeated halving takes about 7 probes to get within 0.01, so mapping a range of texts takes hundreds |
+
+- **5 a minute** leaves the impatient writer some room and makes one submission
+  every 12 seconds the fastest any single caller can go. It also protects the
+  machine, since every submission runs the model for a second or two.
+- **50 a day** is roughly double the heaviest honest day I can imagine, so a real
+  writer should never meet it. It is the number that actually slows a script: a
+  thousand probes from one identity takes about 20 days at 50 a day. The
+  starter's default of 200 a day would take 5.
+- I rejected 10 a minute because it would let a script run twice as fast for no
+  benefit to any writer, and I rejected a day limit under about 30 because a
+  writer revising several pieces in one sitting could hit it by honest use.
+
+**What the limit does not do.** It doesn't make threshold-mapping impossible,
+only slower, and it can be sidestepped (see the next paragraph). It also doesn't
+touch `POST /appeal`, `/log`, `/health` or `/ping`. That is deliberate: a writer
+who has been wrongly labelled, and who has also used up their submissions, must
+still be able to appeal. A test checks this.
+
+**What a caller counts as:** The limit is counted per **`creator_id`** when the
+request has a usable one, and per network address when it doesn't (so a request
+with no or an invalid `creator_id` can't escape being counted either). The two
+ways of counting fail differently, and I chose with that in mind:
+
+- **Per `creator_id`** treats each writer separately, so one heavy writer can't
+  use up anyone else's allowance. Its weakness is that the caller chooses their
+  own `creator_id`: a script that invents a fresh one for every request looks
+  like a thousand different callers and is **never limited at all**. I know this
+  is a real hole. Every row of the attack set uses its own `creator_id`, so those
+  attacks will not trip the limit, and I expect that to show up in the attack run.
+- **Per address** is much harder to dodge, but a household, school or library
+  looks like one caller and shares one allowance. On this machine it would be
+  worse: every request, including my evaluation harness and the attack run, comes
+  from `127.0.0.1`, so everything would share one bucket and block my own testing.
+
+I kept `creator_id` as the main key because the project's own tooling depends on
+it and because shared allowances punish honest writers, who are the people this
+service is supposed to protect. A real deployment would count both, with a looser
+per-address limit behind the per-creator one. Every request to `/submit` counts
+toward the limit, including ones that are then refused for bad input, so sending
+junk is no way around it.
 
 **The run of status codes when I pushed past it:**
 

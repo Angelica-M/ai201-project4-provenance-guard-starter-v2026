@@ -162,6 +162,11 @@ Three steps:
 2. Choose your numbers there.
 3. In `app.py`, uncomment the `@limiter.limit(...)` line above `submit`.
 
+> **In this repo this is done.** `RATE_LIMITING_ENABLED` is now set to `True`
+> directly in `config.py`, so the `AI201_RATE_LIMITS` environment variable no
+> longer has any effect. The tests switch limiting off at runtime instead (see
+> `test_app.py`).
+
 Then push past your limit and watch for `429`:
 
 ```bash

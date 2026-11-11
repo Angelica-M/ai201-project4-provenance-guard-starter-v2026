@@ -145,16 +145,48 @@ AI_THRESHOLD = 0.85
 
 
 # ─── Rate limiting (UNIT 8) ──────────────────────────────────────────────────
-# Off in unit 7. You turn it on and choose the numbers in unit 8, Milestone 1.
+# Turned on in unit 8, Milestone 1. It limits POST /submit only: /appeal, /log,
+# /health and /ping are not limited, so a writer who has been (wrongly) labelled
+# is never locked out of appealing.
 #
-# Think about two people: a real writer submitting their own work a few times
-# an hour, and a script sending a thousand variations to map your thresholds.
-# Your README has to say why your numbers and not others.
+# WHAT A RATE LIMIT IS FOR HERE. Each submission runs a language model, which
+# costs real time, and each answer tells a caller a little about where the
+# thresholds sit. A script that sends a thousand slightly different texts and
+# watches which label comes back can MAP those thresholds and then write text
+# that lands just under them. A limit can't stop that, but it can make it slow.
+#
+# The numbers come from setting two people side by side:
+#
+#   A real writer submits a piece, reads the label, perhaps edits and submits
+#   again. Each round trip takes a person tens of seconds at least, so even an
+#   impatient writer is at 3 or 4 submissions a minute at the very most. A heavy
+#   honest day (many pieces, many revisions) is perhaps 15 to 25 submissions.
+#
+#   A script mapping thresholds needs volume. Finding one threshold on one text
+#   by repeated halving takes about 7 probes to get within 0.01, so mapping a
+#   range of texts takes hundreds.
+#
+# So: 5 a minute leaves the impatient writer room and puts one submission about
+# every 12 seconds as the fastest a single caller can go, which also protects the
+# CPU. 50 a day is roughly double the heaviest honest day, and it is the number
+# that actually bites a script: a thousand probes from one identity takes 20
+# days at 50 a day, against 5 days at the starter's 200.
+#
+# THE KNOWN HOLE. A "caller" is a creator_id when the request has one (see
+# app.py::rate_limit_key), so a script that invents a fresh creator_id for every
+# request is never limited at all. It is deliberate in this project: counting by
+# network address instead would put every request from this laptop in one
+# bucket and block the attack run and the evaluation harness, which all come from
+# 127.0.0.1. The README says so and the attack run in later milestones will show
+# whether it matters.
+#
+# Set to True in this milestone. (The starter read an environment variable here;
+# tests that need limiting off switch it at runtime instead. See test_app.py.)
 
-RATE_LIMITING_ENABLED = os.getenv("AI201_RATE_LIMITS", "0") == "1"
+RATE_LIMITING_ENABLED = True
 
-RATE_LIMIT_PER_MINUTE = 10
-RATE_LIMIT_PER_DAY = 200
+RATE_LIMIT_PER_MINUTE = 5
+RATE_LIMIT_PER_DAY = 50
 
 # Flask-Limiter warns loudly without this. In-memory is right for one laptop
 # and wrong for anything real — a restart forgets every count, and two copies

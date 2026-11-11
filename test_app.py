@@ -15,7 +15,9 @@ real Flask routes, the way a caller would meet them:
   - /submit: what comes back, which label each kind of text gets, what is
     written to the audit log, and what happens to bad input;
   - /appeal: that it records the appeal, marks the item under_review, leaves the
-    original decision alone, and refuses an id that doesn't exist.
+    original decision alone, and refuses an id that doesn't exist;
+  - rate limiting on /submit: that the limit bites at the number chosen in
+    config.py, that a rejection leaves a trace, and that nothing else is limited.
 
 Two things keep it fast and safe to run anywhere:
 
@@ -54,6 +56,12 @@ class ServiceTestCase(unittest.TestCase):
 
     model_score = 0.5     # what the replaced model signal returns; tests change it
 
+    # Rate limiting is ON in the real service (config.RATE_LIMITING_ENABLED), and
+    # the limit is 5 a minute per creator. Most tests submit more than that as
+    # one creator and are about something else, so they run with limiting off.
+    # Tests that are ABOUT the limiter set `limiting = True`.
+    limiting = False
+
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
         patches = [
@@ -66,6 +74,15 @@ class ServiceTestCase(unittest.TestCase):
             patch.start()
             self.addCleanup(patch.stop)
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+
+        # The limiter keeps its counts in memory for the life of the process, so
+        # clear them before AND after each test: otherwise one test's submissions
+        # would count against the next test's creator.
+        service.limiter.enabled = self.limiting
+        service.limiter.reset()
+        self.addCleanup(service.limiter.reset)
+        self.addCleanup(setattr, service.limiter, "enabled", True)
+
         self.client = service.app.test_client()
 
     # Small helpers, so tests read as what they check.
@@ -326,6 +343,116 @@ class Appeal(ServiceTestCase):
     def test_a_refusal_does_not_break_the_service(self):
         self.appeal("never-issued")
         self.assertEqual(self.client.post("/ping", json={"message": "x"}).status_code, 200)
+
+
+class RateLimiting(ServiceTestCase):
+    """POST /submit is limited per caller; nothing else is."""
+
+    limiting = True
+    PER_MINUTE = config.RATE_LIMIT_PER_MINUTE
+
+    def test_the_limits_are_the_ones_chosen_in_config(self):
+        # Pinned here so a change to the numbers is a decision, not an accident.
+        self.assertTrue(config.RATE_LIMITING_ENABLED)
+        self.assertEqual(config.RATE_LIMIT_PER_MINUTE, 5)
+        self.assertEqual(config.RATE_LIMIT_PER_DAY, 50)
+
+    def test_the_limiter_is_really_attached_to_submit(self):
+        # Config being "on" is not enough; the decorator has to be on the route.
+        # A real limiter (not the do-nothing stand-in) must be what app.py holds.
+        self.assertNotEqual(type(service.limiter).__name__, "_LimiterOff")
+        self.assertTrue(service.limiter.enabled)
+
+    def test_the_first_submissions_pass_and_the_next_is_refused(self):
+        codes = [self.submit(creator="flooder").status_code for _ in range(self.PER_MINUTE + 3)]
+        self.assertEqual(codes, [200] * self.PER_MINUTE + [429] * 3)
+
+    def test_a_refusal_has_the_standard_error_shape_and_names_the_limit(self):
+        for _ in range(self.PER_MINUTE):
+            self.submit(creator="flooder")
+        response = self.submit(creator="flooder")
+        self.assertEqual(response.status_code, 429)
+        data = response.get_json()
+        self.assertEqual(data["error"], "rate_limited")
+        self.assertTrue(data["message"])
+        self.assertIn("minute", data["limit"])
+
+    def test_every_rate_limited_request_is_written_to_the_log(self):
+        for _ in range(self.PER_MINUTE + 4):
+            self.submit(creator="flooder")
+        rejections = [e for e in self.log() if e.get("event") == "rejected"]
+        self.assertEqual(len(rejections), 4)
+        for entry in rejections:
+            self.assertEqual(entry["reason"], "rate_limited")
+            self.assertEqual(entry["creator_id"], "flooder")
+            self.assertEqual(entry["status"], "rejected")
+            self.assertTrue(entry["limit"])
+            self.assertTrue(entry["timestamp"])
+
+    def test_limited_requests_never_reach_the_model_or_make_a_decision(self):
+        for _ in range(self.PER_MINUTE):
+            self.submit(creator="flooder")
+        with mock.patch.object(detector, "model_signal") as model:
+            self.submit(creator="flooder")
+            model.assert_not_called()
+        decisions = [e for e in self.log() if "event" not in e]
+        self.assertEqual(len(decisions), self.PER_MINUTE)
+
+    def test_one_creator_being_limited_does_not_limit_another(self):
+        for _ in range(self.PER_MINUTE + 2):
+            self.submit(creator="flooder")
+        self.assertEqual(self.submit(creator="a_different_writer").status_code, 200)
+
+    def test_requests_with_no_usable_creator_are_counted_by_address(self):
+        # No creator_id to count against, so the caller's address is used; these
+        # share one bucket. They are refused (400) until the bucket runs out and
+        # then limited (429), and never crash the key function.
+        bodies = [{"text": "hello there"}, {"text": "hi", "creator_id": ""},
+                  {"text": "hi", "creator_id": 7}, [1, 2], {"text": "x"}]
+        codes = [self.client.post("/submit", json=b).status_code for b in bodies]
+        codes += [self.client.post("/submit", json={"text": "x"}).status_code]
+        self.assertEqual(codes[:self.PER_MINUTE], [400] * self.PER_MINUTE)
+        self.assertEqual(codes[self.PER_MINUTE], 429)
+
+    def test_a_body_that_is_not_json_does_not_crash_the_limiter(self):
+        response = self.client.post("/submit", data="nope", content_type="text/plain")
+        self.assertEqual(response.status_code, 400)
+
+    def test_refused_requests_count_toward_the_limit(self):
+        # A script can't dodge the limit by sending junk: every request to
+        # /submit is counted, whether or not it was a good one.
+        for _ in range(self.PER_MINUTE):
+            self.submit(text="", creator="prober")             # each a 400
+        self.assertEqual(self.submit(creator="prober").status_code, 429)
+
+    def test_the_other_routes_are_not_limited(self):
+        cid = self.submit(creator="writer").get_json()["content_id"]
+        for _ in range(self.PER_MINUTE * 3):
+            self.assertEqual(self.client.post("/ping", json={"message": "x"}).status_code, 200)
+            self.assertEqual(self.client.get("/health").status_code, 200)
+            self.assertEqual(self.client.get("/log").status_code, 200)
+        for _ in range(self.PER_MINUTE * 3):
+            response = self.client.post("/appeal", json={"content_id": cid, "reasoning": "again"})
+            self.assertEqual(response.status_code, 200)
+
+    def test_a_limited_writer_can_still_appeal(self):
+        # Being rate limited must never lock someone out of challenging a label.
+        cid = self.submit(creator="writer").get_json()["content_id"]
+        for _ in range(self.PER_MINUTE + 2):
+            self.submit(creator="writer")
+        self.assertEqual(self.submit(creator="writer").status_code, 429)
+        response = self.client.post("/appeal", json={"content_id": cid, "reasoning": "still me"})
+        self.assertEqual(response.status_code, 200)
+
+    def test_the_limit_resets_so_a_writer_is_not_locked_out_for_good(self):
+        for _ in range(self.PER_MINUTE + 1):
+            self.submit(creator="writer")
+        self.assertEqual(self.submit(creator="writer").status_code, 429)
+        service.limiter.reset()                                  # stands in for time passing
+        self.assertEqual(self.submit(creator="writer").status_code, 200)
+
+    def test_health_reports_that_limiting_is_on(self):
+        self.assertTrue(self.client.get("/health").get_json()["rate_limiting"])
 
 
 if __name__ == "__main__":
