@@ -675,20 +675,103 @@ silently.
 <!-- Every attack with its outcome and a held-or-broke mark.
      `run_attacks.py --label before` produces the table. -->
 
+The full run is in `results/attack_run_2026-11-10_1833_before.md`: 56 of 56
+requests completed, with no crash or 5xx. I mark an evasion **BROKE** whenever
+AI-targeted text avoids the AI label, including an `unsure` result; an unsure
+result avoids an accusation, but it also means this detector did not identify
+the AI text. For false-positive attacks, only an `ai` label is a break. The
+flood is held as a batch because the first five are within the stated quota and
+the next seven are rejected. `RQ10` and `RQ11` are held by the limiter before
+the route, so they do not prove how `/submit` handles those content types.
 
+**Count:** 15 broke, 41 held.
+
+| ID | Result | Verdict |
+|---|---|---|
+| EV01 | 200, unsure, 0.537 | BROKE |
+| EV02 | 200, human, 0.372 | BROKE |
+| EV03 | 200, unsure, 0.624 | BROKE |
+| EV04 | 200, unsure, 0.769 | BROKE |
+| EV05 | 200, human, 0.286 | BROKE |
+| EV06 | 200, human, 0.359 | BROKE |
+| EV07 | 200, unsure, 0.543 | BROKE |
+| EV08 | 200, unsure, 0.518 | BROKE |
+| EV09 | 200, unsure, 0.625 | BROKE |
+| EV10 | 200, unsure, 0.805 | BROKE |
+| FP01 | 200, unsure, 0.589 | HELD |
+| FP02 | 200, unsure, 0.805 | HELD |
+| FP03 | 200, unsure, 0.775 | HELD |
+| FP04 | 200, unsure, 0.761 | HELD |
+| FP05 | 200, unsure, 0.810 | HELD |
+| FP06 | 200, unsure, 0.653 | HELD |
+| FP07 | 200, unsure, 0.513 | HELD |
+| FP08 | 200, unsure, 0.459 | HELD |
+| PI01 | 200, human, 0.365 | BROKE |
+| PI02 | 200, human, 0.244 | BROKE |
+| PI03 | 200, unsure, 0.659 | HELD |
+| PI04 | 200, unsure, 0.574 | HELD |
+| PI05 | 200, unsure, 0.591 | HELD |
+| PI06 | 200, unsure, 0.568 | HELD |
+| MF01 | 400, rejected | HELD |
+| MF02 | 422, rejected | HELD |
+| MF03 | 200, human, 0.312 | BROKE |
+| MF04 | 200, human, 0.313 | BROKE |
+| MF05 | 200, unsure, 0.687 | HELD |
+| MF06 | 200, unsure, 0.687 | BROKE |
+| MF07 | 200, unsure, 0.676 | HELD |
+| MF08 | 413, rejected | HELD |
+| RQ01 | 400, rejected | HELD |
+| RQ02 | 400, rejected | HELD |
+| RQ03 | 400, rejected | HELD |
+| RQ04 | 400, rejected | HELD |
+| RQ05 | 400, rejected | HELD |
+| RQ06 | 400, rejected | HELD |
+| RQ07 | 400, rejected | HELD |
+| RQ08 | 400, rejected | HELD |
+| RQ09 | 400, rejected | HELD |
+| RQ10 | 429, rate-limited before route | HELD |
+| RQ11 | 429, rate-limited before route | HELD |
+| RQ12 | 400, rejected | HELD |
+| FL01_01 | 200, within five-request quota | HELD |
+| FL01_02 | 200, within five-request quota | HELD |
+| FL01_03 | 200, within five-request quota | HELD |
+| FL01_04 | 200, within five-request quota | HELD |
+| FL01_05 | 200, within five-request quota | HELD |
+| FL01_06 | 429, rate_limited | HELD |
+| FL01_07 | 429, rate_limited | HELD |
+| FL01_08 | 429, rate_limited | HELD |
+| FL01_09 | 429, rate_limited | HELD |
+| FL01_10 | 429, rate_limited | HELD |
+| FL01_11 | 429, rate_limited | HELD |
+| FL01_12 | 429, rate_limited | HELD |
 
 **Ten audit log entries from the run**
 
 <!-- Choose entries that show the interesting failures, not the ten easiest. -->
 
 ```json
-
+[
+  {"timestamp":"2026-11-11T00:32:58+00:00","content_id":"d4042fc0-9d63-45c5-9363-7e4c25222bbe","creator_id":"attacker_EV02","guess":"human","model_score":0.5943,"style_score":0.001,"combined_score":0.3718,"label":"We think this was probably written by a person.","status":"decided"},
+  {"timestamp":"2026-11-11T00:32:59+00:00","content_id":"9b16e0d0-7822-4c9f-9d1b-87c902d4b9df","creator_id":"attacker_EV05","guess":"human","model_score":0.3212,"style_score":0.25,"combined_score":0.2856,"label":"We think this was probably written by a person.","status":"decided"},
+  {"timestamp":"2026-11-11T00:33:01+00:00","content_id":"ed02066d-e0ce-4a46-ad3c-860bd8e8656c","creator_id":"attacker_FP05","guess":"unsure","model_score":0.8005,"style_score":0.819,"combined_score":0.8097,"label":"We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.","status":"decided"},
+  {"timestamp":"2026-11-11T00:33:02+00:00","content_id":"d76be38f-9fb6-42ef-a7d2-a0d640dee4b1","creator_id":"attacker_PI02","guess":"human","model_score":0.2044,"style_score":0.283,"combined_score":0.2437,"label":"We think this was probably written by a person.","status":"decided"},
+  {"timestamp":"2026-11-11T00:33:02+00:00","creator_id":"attacker_MF02","event":"rejected","status":"rejected","reason":"text_too_short"},
+  {"timestamp":"2026-11-11T00:33:03+00:00","content_id":"d1e399d9-61fd-4cde-aa93-c15357f8349b","creator_id":"attacker_MF03","guess":"human","model_score":0.0,"style_score":0.5,"combined_score":0.3125,"label":"We think this was probably written by a person.","status":"decided"},
+  {"timestamp":"2026-11-11T00:33:03+00:00","content_id":"ee5e113a-5ea5-454b-a3c2-931cf4823a62","creator_id":"attacker_MF04","guess":"human","model_score":0.0112,"style_score":0.5,"combined_score":0.3133,"label":"We think this was probably written by a person.","status":"decided"},
+  {"timestamp":"2026-11-11T00:33:04+00:00","creator_id":"attacker_MF08","event":"rejected","status":"rejected","reason":"text_too_long"},
+  {"timestamp":"2026-11-11T00:33:04+00:00","creator_id":"unknown","event":"rejected","status":"rejected","reason":"rate_limited","limit":"5 per 1 minute"},
+  {"timestamp":"2026-11-11T00:33:05+00:00","creator_id":"attacker_flood","event":"rejected","status":"rejected","reason":"rate_limited","limit":"5 per 1 minute"}
+]
 ```
 
 **The single worst outcome** — the one I'd least want to explain to a writer
 whose work got caught by it:
 
-
+FP05, the human-targeted technical documentation sample, scored 0.8097 and was
+labelled `unsure`, only 0.0403 below the 0.85 AI threshold. No false-positive
+sample was actually labelled AI, so this is a near miss rather than a false
+accusation. The more severe overall detector failure is EV05: heavily edited
+AI-style text was labelled human at 0.2856.
 
 ---
 
@@ -698,18 +781,43 @@ whose work got caught by it:
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |
+| 1. Own-writing false positives | At most 1 of 10 labelled AI | met | met | met | Provisional; samples are not mine |
+| 2. Score spread | AI mean at least 0.30 above human; 4/5 each side of 0.50 | met | met | met | Provisional; human set is AI-drafted |
+| 3. Label coverage | All labels; 3/4 borderline unsure; real label text | met | met | met | Provisional; human/borderline sets are AI-drafted |
+| 4. Appeal path | 10/10 appeals recorded; 5/5 unknown ids refused | met | met | met | MET |
+| 5. Bad input | 8/8 JSON 4xx errors, service alive, 8 rejections | met | met | met | MET; see 429 note below |
+
+The report says every coded target was met in all three trials. Criteria 1–3
+are not valid evidence about my writing: `scenarios.py` identifies those
+human/borderline samples as AI-drafted stand-ins. I have not replaced them with
+my own writing, so those three verdicts remain provisional and must be rerun
+before I can claim they hold.
+
+Criterion 5 met its written 4xx contract, but one or two requests without a
+usable `creator_id` received 429 in some trials. Those requests were rejected
+and logged by the address-based limiter before `/submit` ran; that proves the
+fallback limit worked, not that the route's malformed-body checks handled those
+specific requests. The focused Flask tests exercise those route cases directly.
 
 **Real output from one trial**, pasted as text, naming the file and function
 that produced it:
 
 ```json
-
+[
+  {"status":400,"json_ok":true,"sent":"{\"creator_id\": \"eval_bad_missing\"}","error":"invalid_input","message":"text must be a non-empty string."},
+  {"status":400,"json_ok":true,"sent":"(empty text)","error":"invalid_input","message":"text must be a non-empty string."},
+  {"status":400,"json_ok":true,"sent":"   \\n\\t  ","error":"invalid_input","message":"text must be a non-empty string."},
+  {"status":400,"json_ok":true,"sent":"{\"text\": null, \"creator_id\": \"eval_bad_null\"}","error":"invalid_input","message":"text must be a non-empty string."},
+  {"status":400,"json_ok":true,"sent":"{\"text\": 12345, \"creator_id\": \"eval_bad_number\"}","error":"invalid_input","message":"text must be a non-empty string."},
+  {"status":400,"json_ok":true,"sent":"{\"text\": \"This one is fine apart from the missing creator.\"}","error":"invalid_input","message":"creator_id must be a non-empty string."},
+  {"status":400,"json_ok":true,"sent":"[1, 2, 3]","error":"invalid_input","message":"Send a JSON object with text and creator_id."},
+  {"status":413,"json_ok":true,"sent":"word word word word word word word word word word word word word word ","error":"text_too_long","message":"text is over 20,000 characters."}
+]
 ```
+
+From `results/run_2026-11-10_1848_before.md`, produced by
+`run_eval.py::run_submit_trial`, Trial 1 of **bad input**. The report also
+records `{"alive_after": true, "new_rejections": 8}` for this trial.
 
 **Diagnoses**
 
@@ -727,7 +835,35 @@ that produced it:
 
      Look for a pattern. Five failures on one signal is one problem, not five. -->
 
+The attack set has no 5xx or crashes; the “broke” marks above mean the attack
+achieved its stated classification/input goal, not that the process crashed.
 
+- **Evasion, 10/10:** The label mapping is the final weakness: AI-targeted text
+  never reached the 0.85 AI line. EV02 and EV06 drove the style signal to 0.001
+  and 0.000 by adding extreme sentence-length variation, pulling the combined
+  scores to 0.3718 and 0.3592. EV05 lowered both signals (0.3212 and 0.2500),
+  so the combination could not recover the AI origin. The other seven were
+  `unsure`, which avoids an AI finding but still lets the evasion avoid the AI
+  label.
+- **Prompt injection, 2/6:** PI01 and PI02 received the requested `human`
+  label. The route does not execute the text as instructions; instead, the
+  detector treats the injected words as ordinary text. The model and style
+  signals both landed low (PI02: 0.2044 and 0.2830), and the combined score
+  crossed the human threshold. PI04's hostile markup did not change the fixed
+  label, and PI05's supplied JSON fragment did not become audit fields.
+- **Malformed text, 3/20:** The route checked that text was a non-empty string,
+  but not that it contained usable text. Control characters, punctuation-only
+  text, and emoji-only text reached the detector and received decisions. This
+  was a route-validation gap, fixed below. The giant single token remained
+  accepted but did not crash and was labelled unsure; the right-to-left Arabic
+  sample is valid writing and should remain supported.
+- **False positives, 0/8:** None of the human-targeted samples received an AI
+  label. FP05 was the closest to the line at 0.8097. These samples are still
+  AI-drafted stand-ins, so they do not establish the false-positive rate on my
+  own writing.
+- **Flood and malformed-request limit, held:** The shared-creator flood passed
+  five requests and then produced 429s. RQ10 and RQ11 also got 429s under the
+  address fallback, before the route could inspect their content types.
 
 ---
 
@@ -735,16 +871,95 @@ that produced it:
 
 **What I changed:**
 
+I added route-level checks in `app.py` to reject Unicode control characters
+(except normal line breaks/tabs) and text with no alphanumeric character. These
+return a logged 400 before either signal runs. Arabic letters still pass. I
+added regression tests for control characters, punctuation-only input, and
+right-to-left text.
+
 **Which diagnosis pointed at it:**
+
+The three malformed-content cases that were scored as decisions (MF03, MF04,
+MF06) showed the route's non-empty-string check was too weak. The change fixes
+that specific route gap; it does not change either signal, the combination, or
+the label thresholds.
 
 ### Attack Run — After
 
 <!-- Same format. `run_attacks.py --label after` -->
 
+The full report is `results/attack_run_2026-11-10_1850_after.md`. All 56
+requests completed without a crash or 5xx. The same verdict rule gives **12
+broke, 44 held**: the three invalid-content cases now return 400, while all ten
+evasion cases and the two successful prompt-injection cases remain unchanged.
 
+| ID | Result | Verdict |
+|---|---|---|
+| EV01 | 200, unsure, 0.537 | BROKE |
+| EV02 | 200, human, 0.372 | BROKE |
+| EV03 | 200, unsure, 0.624 | BROKE |
+| EV04 | 200, unsure, 0.769 | BROKE |
+| EV05 | 200, human, 0.286 | BROKE |
+| EV06 | 200, human, 0.359 | BROKE |
+| EV07 | 200, unsure, 0.543 | BROKE |
+| EV08 | 200, unsure, 0.518 | BROKE |
+| EV09 | 200, unsure, 0.625 | BROKE |
+| EV10 | 200, unsure, 0.805 | BROKE |
+| FP01 | 200, unsure, 0.589 | HELD |
+| FP02 | 200, unsure, 0.805 | HELD |
+| FP03 | 200, unsure, 0.775 | HELD |
+| FP04 | 200, unsure, 0.761 | HELD |
+| FP05 | 200, unsure, 0.810 | HELD |
+| FP06 | 200, unsure, 0.653 | HELD |
+| FP07 | 200, unsure, 0.513 | HELD |
+| FP08 | 200, unsure, 0.459 | HELD |
+| PI01 | 200, human, 0.365 | BROKE |
+| PI02 | 200, human, 0.244 | BROKE |
+| PI03 | 200, unsure, 0.659 | HELD |
+| PI04 | 200, unsure, 0.574 | HELD |
+| PI05 | 200, unsure, 0.591 | HELD |
+| PI06 | 200, unsure, 0.568 | HELD |
+| MF01 | 400, rejected | HELD |
+| MF02 | 422, rejected | HELD |
+| MF03 | 400, rejected | HELD |
+| MF04 | 400, rejected | HELD |
+| MF05 | 200, unsure, 0.687 | HELD |
+| MF06 | 400, rejected | HELD |
+| MF07 | 200, unsure, 0.676 | HELD |
+| MF08 | 413, rejected | HELD |
+| RQ01 | 400, rejected | HELD |
+| RQ02 | 400, rejected | HELD |
+| RQ03 | 400, rejected | HELD |
+| RQ04 | 400, rejected | HELD |
+| RQ05 | 400, rejected | HELD |
+| RQ06 | 400, rejected | HELD |
+| RQ07 | 400, rejected | HELD |
+| RQ08 | 400, rejected | HELD |
+| RQ09 | 400, rejected | HELD |
+| RQ10 | 429, rate-limited before route | HELD |
+| RQ11 | 429, rate-limited before route | HELD |
+| RQ12 | 400, rejected | HELD |
+| FL01_01 | 200, within five-request quota | HELD |
+| FL01_02 | 200, within five-request quota | HELD |
+| FL01_03 | 200, within five-request quota | HELD |
+| FL01_04 | 200, within five-request quota | HELD |
+| FL01_05 | 200, within five-request quota | HELD |
+| FL01_06 | 429, rate_limited | HELD |
+| FL01_07 | 429, rate_limited | HELD |
+| FL01_08 | 429, rate_limited | HELD |
+| FL01_09 | 429, rate_limited | HELD |
+| FL01_10 | 429, rate_limited | HELD |
+| FL01_11 | 429, rate_limited | HELD |
+| FL01_12 | 429, rate_limited | HELD |
 
 **Did it help, and how do I know:**
 
+Yes, for the narrow malformed-text gap: MF03, MF04, and MF06 changed from 200
+decisions to 400 rejections. Arabic MF07 remains accepted, as it should. It did
+not improve evasion detection: all ten EV outcomes and both prompt-injection
+human labels are unchanged. The five automated targets still report met in
+each trial, but criteria 1–3 remain invalid until the stand-in prose is
+replaced with my own writing.
 <!-- Widening the unsure band usually fixes one problem and creates another.
      Reporting that trade honestly is worth full credit. -->
 
@@ -757,6 +972,24 @@ that produced it:
 <!-- For each attack still getting through and each criterion still missed:
      what you'd do, and why you stopped. -->
 
+The remaining evasion cases need better evidence or a more informative review
+path, not a threshold lowered just to make this test pass. Lowering the 0.85 AI
+line would make the unsure outputs look more decisive but would increase the
+risk to plain, formal, and second-language writers. PI01 and PI02 also remain
+human-labelled because the two signals measure predictability and sentence
+shape, not authorship or the truth of an instruction embedded in the text.
+
+MF05, the long single-token input, is still accepted and scored; I stopped
+short of banning unusual words because that would reject legitimate names and
+technical terms. MF07's Arabic is valid text, not malformed input. RQ10 and
+RQ11 remain untested at the route because the fallback address quota returns
+429 first. The evaluation harness also encountered 429s for creator-less
+requests after earlier requests from the same local address; a production
+evaluation should isolate the limiter state or run after its window resets.
+
+Criteria 1–3 still need real, non-AI-authored writing before their results can
+be trusted. I did not invent personal writing to fill those scenarios; I need
+to replace the stand-ins with my own work and rerun those three trials.
 
 
 **The trade I'd make if this ran for real:**
@@ -764,7 +997,11 @@ that produced it:
 <!-- Two sentences. Fewer wrong accusations means more AI text getting through.
      Say which way you'd go and WHO PAYS FOR IT. -->
 
-
+I would keep the high AI threshold and wide unsure band: writers with plain or
+formal prose get more protection, while readers and moderators bear the cost
+of more AI text remaining undecided. I would pair the per-creator quota with a
+looser, privacy-aware address quota so inventing new creator ids cannot bypass
+all rate limits, while accounting for shared networks.
 
 <!-- ═════════════════════════════════════════════════════════════════════
 

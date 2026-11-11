@@ -24,6 +24,7 @@ Routes:
     GET  /health      is the service up, and is the model loaded
 """
 
+import unicodedata
 import uuid
 
 from flask import Flask, jsonify, request
@@ -254,6 +255,13 @@ def submit():
         # when it isn't usable.
         return _error(400, "invalid_input", "text must be a non-empty string.",
                       creator_id)
+    if any(unicodedata.category(char) == "Cc" and char not in "\n\r\t"
+           for char in text):
+        return _error(400, "invalid_input",
+                      "text must not contain control characters.", creator_id)
+    if not any(char.isalnum() for char in text):
+        return _error(400, "invalid_input",
+                      "text must contain at least one letter or number.", creator_id)
     if not isinstance(creator_id, str) or not creator_id.strip():
         return _error(400, "invalid_input", "creator_id must be a non-empty string.")
     if len(text) > config.MAX_TEXT_CHARS:

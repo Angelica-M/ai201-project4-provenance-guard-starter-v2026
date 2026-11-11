@@ -189,6 +189,15 @@ class SubmitRefusals(ServiceTestCase):
                                side_effect=ValueError("Text is too short to score")):
             self.assert_refused(self.submit("Hi"), 422, "text_too_short")
 
+    def test_control_characters_and_punctuation_only_text_are_refused(self):
+        self.assert_refused(self.submit("\x00\x01 test"), 400, "invalid_input")
+        self.assert_refused(self.submit("!!! ??? ... ,,, ;;; --- ((( )))"),
+                            400, "invalid_input")
+
+    def test_non_latin_alphanumeric_text_is_accepted(self):
+        response = self.submit("هذا نص عربي صالح لاختبار النظام")
+        self.assertEqual(response.status_code, 200)
+
     def test_a_model_that_cannot_load_is_a_503(self):
         with mock.patch.object(detector, "model_signal",
                                side_effect=detector.DetectorUnavailable("no model")):
