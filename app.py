@@ -26,6 +26,7 @@ Routes:
 
 import unicodedata
 import uuid
+import hashlib
 
 from flask import Flask, jsonify, request
 
@@ -255,6 +256,18 @@ def submit():
         # when it isn't usable.
         return _error(400, "invalid_input", "text must be a non-empty string.",
                       creator_id)
+    raw_sha256 = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    if len(text) > config.MAX_TEXT_CHARS:
+        return _error(413, "text_too_long",
+                      f"text is over {config.MAX_TEXT_CHARS:,} characters.",
+                      creator_id)
+
+    text = unicodedata.normalize("NFKC", text)
+    for zero_width in ("\u200b", "\u200c", "\u200d", "\ufeff"):
+        text = text.replace(zero_width, "")
+    if not text.strip():
+        return _error(400, "invalid_input", "text must be a non-empty string.",
+                      creator_id)
     if any(unicodedata.category(char) == "Cc" and char not in "\n\r\t"
            for char in text):
         return _error(400, "invalid_input",
@@ -264,10 +277,44 @@ def submit():
                       "text must contain at least one letter or number.", creator_id)
     if not isinstance(creator_id, str) or not creator_id.strip():
         return _error(400, "invalid_input", "creator_id must be a non-empty string.")
-    if len(text) > config.MAX_TEXT_CHARS:
-        return _error(413, "text_too_long",
-                      f"text is over {config.MAX_TEXT_CHARS:,} characters.",
-                      creator_id)
+
+    word_count = len(stylometry.words(text))
+    sentence_count = len([s for s in stylometry.sentences(text) if stylometry.words(s)])
+    estimated_tokens = detector.estimate_token_count(text)
+    text_truncated = estimated_tokens > config.DETECTOR_MAX_TOKENS
+    tokens_evaluated = min(estimated_tokens, config.DETECTOR_MAX_TOKENS)
+
+    if word_count < 30 or sentence_count < 3:
+        content_id = str(uuid.uuid4())
+        guess, label = scoring.score_to_label(0.5)
+        audit.log_decision(
+            content_id=content_id,
+            creator_id=creator_id,
+            guess=guess,
+            model_score=None,
+            style_score=None,
+            combined_score=None,
+            label=label,
+            status="insufficient_evidence",
+            reason_code="insufficient_text_length",
+            raw_sha256=raw_sha256,
+            text_truncated=text_truncated,
+            tokens_evaluated=tokens_evaluated,
+        )
+        return jsonify({
+            "content_id": content_id,
+            "guess": guess,
+            "confidence": None,
+            "label": label,
+            "model_score": None,
+            "style_score": None,
+            "combined_score": None,
+            "status": "insufficient_evidence",
+            "reason_code": "insufficient_text_length",
+            "raw_sha256": raw_sha256,
+            "text_truncated": text_truncated,
+            "tokens_evaluated": tokens_evaluated,
+        }), 200
 
     # 3. Run signal one. Two things can go wrong and they are different faults:
     #    the text is too short for the model to score (the caller's problem,
@@ -278,6 +325,72 @@ def submit():
         return _error(422, "text_too_short", str(exc), creator_id)
     except detector.DetectorUnavailable as exc:
         return _error(503, "detector_unavailable", str(exc), creator_id)
+    except (TimeoutError, detector.DetectorTimeout, detector.DetectorInferenceError) as exc:
+        style_score = stylometry.style_signal(text)
+        content_id = str(uuid.uuid4())
+        _, _, guess, label = scoring.degraded_result()
+        audit.log_decision(
+            content_id=content_id,
+            creator_id=creator_id,
+            guess=guess,
+            model_score=None,
+            style_score=style_score,
+            combined_score=None,
+            label=label,
+            status="degraded",
+            reason_code="model_inference_failed",
+            error=str(exc),
+            raw_sha256=raw_sha256,
+            text_truncated=text_truncated,
+            tokens_evaluated=tokens_evaluated,
+        )
+        return jsonify({
+            "content_id": content_id,
+            "guess": guess,
+            "confidence": None,
+            "label": label,
+            "model_score": None,
+            "style_score": style_score,
+            "combined_score": None,
+            "status": "degraded",
+            "reason_code": "model_inference_failed",
+            "raw_sha256": raw_sha256,
+            "text_truncated": text_truncated,
+            "tokens_evaluated": tokens_evaluated,
+        }), 200
+    except Exception as exc:
+        style_score = stylometry.style_signal(text)
+        content_id = str(uuid.uuid4())
+        _, _, guess, label = scoring.degraded_result()
+        audit.log_decision(
+            content_id=content_id,
+            creator_id=creator_id,
+            guess=guess,
+            model_score=None,
+            style_score=style_score,
+            combined_score=None,
+            label=label,
+            status="degraded",
+            reason_code="model_inference_failed",
+            error=str(exc),
+            raw_sha256=raw_sha256,
+            text_truncated=text_truncated,
+            tokens_evaluated=tokens_evaluated,
+        )
+        return jsonify({
+            "content_id": content_id,
+            "guess": guess,
+            "confidence": None,
+            "label": label,
+            "model_score": None,
+            "style_score": style_score,
+            "combined_score": None,
+            "status": "degraded",
+            "reason_code": "model_inference_failed",
+            "raw_sha256": raw_sha256,
+            "text_truncated": text_truncated,
+            "tokens_evaluated": tokens_evaluated,
+        }), 200
 
     # 4. Run signal two (Milestone 4). It measures the text's shape, never loads
     #    a model, and can't fail on text that already passed the checks above,
@@ -318,6 +431,9 @@ def submit():
         combined_score=combined_score,
         label=label,
         status="decided",
+        raw_sha256=raw_sha256,
+        text_truncated=text_truncated,
+        tokens_evaluated=tokens_evaluated,
     )
 
     # 9. Answer.
@@ -328,6 +444,10 @@ def submit():
         "label": label,
         "model_score": model_score,
         "style_score": style_score,
+        "combined_score": combined_score,
+        "raw_sha256": raw_sha256,
+        "text_truncated": text_truncated,
+        "tokens_evaluated": tokens_evaluated,
     }), 200
 
 
