@@ -42,6 +42,7 @@ for yourself where it lands.
 """
 
 import math
+import concurrent.futures
 
 import config
 
@@ -51,6 +52,14 @@ _tokenizer = None
 
 class DetectorUnavailable(RuntimeError):
     """The model couldn't be loaded — no download yet, or no disk."""
+
+
+class DetectorTimeout(RuntimeError):
+    """GPT-2 inference exceeded the bounded execution window."""
+
+
+class DetectorInferenceError(RuntimeError):
+    """GPT-2 inference failed for a non-recoverable runtime reason."""
 
 
 def _load():
@@ -125,7 +134,23 @@ def model_signal(text: str) -> float:
     inputs in Milestone 4 and seen what your own text actually scores. If you
     do, say so in your README: it's a scoring decision, not a detail.
     """
-    ppl = perplexity(text)
+    # Isolate GPT-2 work in a bounded single-worker thread so a slow or stuck
+    # model call cannot hold a submission request indefinitely.
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    future = executor.submit(perplexity, text)
+    try:
+        ppl = future.result(timeout=3.0)
+    except concurrent.futures.TimeoutError as exc:
+        future.cancel()
+        raise DetectorTimeout("GPT-2 inference timed out after 3.0 seconds.") from exc
+    except DetectorUnavailable:
+        raise
+    except ValueError:
+        raise
+    except Exception as exc:
+        raise DetectorInferenceError(f"GPT-2 inference failed: {exc}") from exc
+    finally:
+        executor.shutdown(wait=False, cancel_futures=True)
 
     midpoint = 45.0    # perplexity that scores 0.5
     steepness = 1.6    # how sharply the score moves either side of it
@@ -139,6 +164,19 @@ def warm_up() -> str:
     """Load the model without scoring anything. Run this before class."""
     _load()
     return f"{config.DETECTOR_MODEL} loaded and ready."
+
+
+def estimate_token_count(text: str) -> int:
+    """Lightweight token estimate used to report truncation before model loading."""
+    try:
+        model, tokenizer = _model, _tokenizer
+        if model is not None and tokenizer is not None:
+            return len(tokenizer.encode(text, add_special_tokens=False))
+    except Exception:
+        pass
+    # GPT-2 word-piece tokens are commonly close to whitespace words but can
+    # be larger for punctuation. This conservative estimate avoids false certainty.
+    return len(text.replace("\n", " ").split())
 
 
 if __name__ == "__main__":

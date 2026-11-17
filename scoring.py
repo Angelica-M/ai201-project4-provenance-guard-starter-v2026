@@ -17,6 +17,7 @@ you claim, so that line should read `scoring.py::combine_signals`.
 """
 
 import config
+import math
 
 # ── The three labels: the exact words a reader sees (Milestone 5) ────────────
 # The same text is in the README under "Label Variants", and test_scoring.py
@@ -47,6 +48,12 @@ LABEL_AI = (
     "yourself, you can appeal and explain how you wrote it, and your appeal "
     "will be recorded and marked for review."
 )
+
+
+def degraded_result() -> tuple[None, None, str, str]:
+    """Result shape used when model inference cannot be trusted."""
+    guess, label = score_to_label(0.5)
+    return None, None, guess, label
 
 
 def combine_signals(model_score: float, style_score: float) -> float:
@@ -106,6 +113,14 @@ def combine_signals(model_score: float, style_score: float) -> float:
     slightly harder to earn. That is the intended trade: when two methods
     disagree, neither answer should be stated confidently.
     """
+    # Safe degradation is explicit: no model score means no combined score.
+    if model_score is None or style_score is None:
+        return 0.5
+    if not isinstance(model_score, (int, float)) or not isinstance(style_score, (int, float)):
+        return 0.5
+    if not math.isfinite(model_score) or not math.isfinite(style_score):
+        return 0.5
+
     # Squeeze inputs into 0..1 so one bad value can't push the result outside it.
     model_score = min(max(model_score, 0.0), 1.0)
     style_score = min(max(style_score, 0.0), 1.0)
