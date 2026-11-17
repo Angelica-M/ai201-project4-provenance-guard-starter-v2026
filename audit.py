@@ -21,11 +21,18 @@ and the one you most want to compare is the one from before the change.
 
 import json
 import threading
+import sqlite3
 from datetime import datetime, timezone
 
 import config
 
-_lock = threading.Lock()
+_lock = threading.RLock()
+
+
+def _db_path():
+    # Keeping the DB beside AUDIT_LOG makes temporary test logs and real logs
+    # isolated in exactly the same way.
+    return config.AUDIT_LOG.with_name("audit.sqlite3")
 
 
 def _now() -> str:
@@ -68,6 +75,7 @@ def log_decision(
         "combined_score": combined_score,
         "label": label,
         "status": status,
+        "config_hash": config.generate_config_hash(),
     }
     entry.update(extra)
     return _append(entry)
@@ -82,14 +90,22 @@ def log_appeal(content_id: str, creator_id: str, reasoning: str) -> dict:
     the whole point of an audit log. Someone reading it later can see what was
     decided, that it was challenged, and in what order.
     """
-    return _append({
-        "timestamp": _now(),
-        "content_id": content_id,
-        "creator_id": creator_id,
-        "event": "appeal",
-        "status": "under_review",
-        "reasoning": reasoning,
-    })
+    with _lock:
+        existing = next((e for e in entries_for(content_id)
+                         if e.get("event") == "appeal"
+                         and e.get("status") == "under_review"), None)
+        if existing is not None:
+            return existing
+
+        return _append({
+            "timestamp": _now(),
+            "content_id": content_id,
+            "creator_id": creator_id,
+            "event": "appeal",
+            "status": "under_review",
+            "reasoning": reasoning,
+            "config_hash": config.generate_config_hash(),
+        })
 
 
 def log_rejection(creator_id: str, reason: str, **extra) -> dict:
@@ -114,10 +130,19 @@ def log_rejection(creator_id: str, reason: str, **extra) -> dict:
 
 def _append(entry: dict) -> dict:
     config.LOG_DIR.mkdir(parents=True, exist_ok=True)
-    line = json.dumps(entry, ensure_ascii=False)
     with _lock:
-        with config.AUDIT_LOG.open("a", encoding="utf-8") as f:
-            f.write(line + "\n")
+        db = _db_path()
+        db.parent.mkdir(parents=True, exist_ok=True)
+        with sqlite3.connect(db) as connection:
+            connection.execute("PRAGMA journal_mode=WAL;")
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS audit_entries "
+                "(id INTEGER PRIMARY KEY AUTOINCREMENT, payload TEXT NOT NULL)"
+            )
+            connection.execute(
+                "INSERT INTO audit_entries(payload) VALUES (?)",
+                (json.dumps(entry, ensure_ascii=False, sort_keys=True),),
+            )
     return entry
 
 
@@ -128,18 +153,32 @@ def read_entries(limit: int | None = None) -> list[dict]:
     A malformed line is skipped rather than raising — a log that can't be read
     because of one bad row is worse than a log with a gap.
     """
-    if not config.AUDIT_LOG.exists():
-        return []
-
+    db = _db_path()
     entries = []
-    for line in config.AUDIT_LOG.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line:
-            continue
+    if db.exists():
         try:
-            entries.append(json.loads(line))
-        except json.JSONDecodeError:
-            continue
+            with sqlite3.connect(db) as connection:
+                connection.execute("PRAGMA journal_mode=WAL;")
+                rows = connection.execute(
+                    "SELECT payload FROM audit_entries ORDER BY id ASC"
+                ).fetchall()
+            for (payload,) in rows:
+                try:
+                    entries.append(json.loads(payload))
+                except json.JSONDecodeError:
+                    continue
+        except sqlite3.Error:
+            entries = []
+
+    if not entries and config.AUDIT_LOG.exists():
+        for line in config.AUDIT_LOG.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entries.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
 
     return entries[-limit:] if limit else entries
 
@@ -147,9 +186,34 @@ def read_entries(limit: int | None = None) -> list[dict]:
 def clear() -> int:
     """Wipe the log. Handy between attack runs; returns how many went."""
     count = len(read_entries())
+    db = _db_path()
+    if db.exists():
+        db.unlink()
+    for suffix in ("-wal", "-shm"):
+        sidecar = db.with_name(db.name + suffix)
+        if sidecar.exists():
+            sidecar.unlink()
     if config.AUDIT_LOG.exists():
         config.AUDIT_LOG.unlink()
     return count
+
+
+def export_audit_jsonl(path: str | Path | None = None) -> Path:
+    """Export SQLite entries to a deterministic canonical JSON Lines file."""
+    from pathlib import Path
+
+    destination = Path(path) if path is not None else config.AUDIT_LOG
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    entries = read_entries()
+    with destination.open("w", encoding="utf-8", newline="\n") as handle:
+        for entry in entries:
+            handle.write(json.dumps(
+                entry,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ) + "\n")
+    return destination
 
 
 def entries_for(content_id: str) -> list[dict]:

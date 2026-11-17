@@ -49,7 +49,7 @@ DETECTOR_MAX_TOKENS = 400
 # The longest `text` /submit will accept, in characters. Only the first 400
 # tokens are ever scored, so a huge body adds cost and no accuracy; refusing it
 # up front (413) is cheaper than reading it and then ignoring most of it.
-MAX_TEXT_CHARS = 20_000
+MAX_TEXT_CHARS = 25_000
 
 # The longest appeal `reasoning` /appeal will accept, in characters. An appeal is
 # a few sentences from a person; 5,000 characters is several pages. The cap
@@ -198,4 +198,28 @@ RATE_LIMIT_STORAGE = "memory://"
 
 LOG_DIR = ROOT / "logs"
 AUDIT_LOG = LOG_DIR / "audit.jsonl"
+AUDIT_DB = LOG_DIR / "audit.sqlite3"
 RESULTS_DIR = ROOT / "results"
+
+
+def generate_config_hash() -> str:
+    """SHA-256 fingerprint of the model and scoring settings used for a run."""
+    import hashlib
+    import json
+
+    versioned = {
+        "DETECTOR_MODEL": DETECTOR_MODEL,
+        "DETECTOR_MAX_TOKENS": DETECTOR_MAX_TOKENS,
+        "WEIGHT_MODEL_SIGNAL": WEIGHT_MODEL_SIGNAL,
+        "WEIGHT_STYLE_SIGNAL": WEIGHT_STYLE_SIGNAL,
+        "DISAGREEMENT_START": DISAGREEMENT_START,
+        "DISAGREEMENT_FULL": DISAGREEMENT_FULL,
+        "DISAGREEMENT_MAX_PULL": DISAGREEMENT_MAX_PULL,
+        "HUMAN_THRESHOLD": HUMAN_THRESHOLD,
+        "AI_THRESHOLD": AI_THRESHOLD,
+    }
+    canonical = json.dumps(versioned, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+config_hash = generate_config_hash

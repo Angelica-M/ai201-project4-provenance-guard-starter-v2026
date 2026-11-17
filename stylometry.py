@@ -154,6 +154,8 @@ def sentence_length_spread(text: str) -> float:
     if len(lengths) < 2:
         return 0.0
     mean = statistics.mean(lengths)
+    if mean == 0:
+        return 0.0
     return statistics.stdev(lengths) / mean
 
 
