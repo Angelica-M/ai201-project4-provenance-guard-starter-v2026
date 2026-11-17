@@ -1069,3 +1069,34 @@ Then try the route you're about to build: `POST /submit` with `text` and `creato
 `RUNNING.md` in the repo is your reference for everything else: every command, which route is built and which is yours, what each file does, and the troubleshooting table. Read it once now, and come back to it whenever you're stuck.
 
 The first submission takes ten seconds or more while signal one loads the model into memory. Later ones take a second or two. If every submission is slow, something is reloading the model on each call. `GET /health` shows `detector_loaded`, and if that flips back to `false` you have a reload in your handler.
+
+---
+
+## Capstone: an extension beyond the graded unit 7/8 submission
+
+Units 7 and 8 are complete and submitted (see the checklist at the bottom of [README.md](README.md)). Everything from here on is a further, personal extension of the same repository, scoped as two pieces of work:
+
+- **Option A — Deployment & Instrumentation** (mandatory "Shape A")
+- **Option B — Hardening** (the chosen second shape, "Shape B")
+
+A new `## Capstone` section was added to the very bottom of [README.md](README.md), and a new `## Capstone` section with five blank criteria was added to the very bottom of [criteria.md](criteria.md), both strictly below everything that was already there. Nothing in either file's existing content was touched.
+
+### Capstone Milestone 1: Pick the System, Pick the Shape, and Cut the Scope
+
+**The idea:** define the architectural boundaries before writing any code, so the work finishes cleanly within scope instead of growing without a stopping point.
+
+**What was done, in the three capstone sub-sections this milestone fills:**
+
+1. **What This Extends.** States plainly that this work extends Provenance Guard, naming the six files that make up the service (`app.py`, `detector.py`, `stylometry.py`, `scoring.py`, `audit.py`, `config.py`).
+2. **The Shape.** Declares Shape B — Harden against failure, alongside the mandatory Shape A — Deploy and instrument operational layer. Shape B is broken into four concrete upgrades, each naming the files it touches:
+   - Transactional, version-stamped audit logging (`audit.py`, `config.py`)
+   - Statistical sample gates & zero-division math guards (`app.py`, `stylometry.py`)
+   - Timeout-isolated gpt2 execution with safe-fail degradation (`detector.py`, `scoring.py`)
+   - Forensic SHA-256 input sanitization & payload truncation boundaries (`app.py`)
+3. **Cut Scope (Out-of-Scope Decisions).** Three things explicitly ruled out: swapping or retraining the detector model, recalibrating the existing 0.40/0.85 thresholds, and building an automated appeal re-evaluation pipeline or a user-facing frontend.
+
+**Why cutting scope matters as much as declaring it:** each of the four Shape B upgrades touches code that already works and is already tested (122 tests passing across `test_app.py`, `test_scoring.py`, `test_stylometry.py`, `test_eval_harness.py`). Naming what is explicitly *not* changing — the model, the thresholds, the appeal flow's shape — draws a boundary around what the later milestones are allowed to touch, which is what keeps a hardening pass from drifting into a rewrite.
+
+No code was changed in this step. It is a README-only, scope-defining milestone, matching the instruction to commit "these initial scope sections" on their own.
+
+**Before moving on:** `What This Extends`, `The Shape`, and `Cut Scope` are written in README.md's Capstone section, each in first person, each committed on its own. Done.

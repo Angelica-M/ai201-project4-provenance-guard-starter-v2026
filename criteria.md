@@ -203,3 +203,86 @@ that leaves no trace is invisible when someone probes the service.
      A number you missed stays where it is, gets diagnosed, and gets a fix
      attempted. That's where the points are.
      ───────────────────────────────────────────────────────────────────────── -->
+
+<!-- ═════════════════════════════════════════════════════════════════════
+     CAPSTONE — an addition beyond the unit 7/8 brief above.
+
+     Nothing above this line is touched. This is a personal extension to
+     Provenance Guard: two further pieces of work, informally called
+
+       Option A — Deployment & Instrumentation
+       Option B — Hardening
+
+     The five numbered criteria below are NEW criteria for that work, written
+     the same way as the original five: a number or an observable outcome,
+     and a reason underneath. Content to follow, step by step.
+     ═════════════════════════════════════════════════════════════════════ -->
+
+---
+
+## Capstone
+
+Five further criteria, for the capstone work described above (**Option A —
+Deployment & Instrumentation** and **Option B — Hardening**). Same rules as
+the original five: each names a number or an observable outcome, and each has
+a reason underneath.
+
+---
+
+## 1.
+
+<!-- Your criterion. It must name a number. -->
+
+
+
+**Why this target:**
+
+
+
+---
+
+## 2.
+
+<!-- Your criterion. -->
+
+
+
+**Why this target:**
+
+
+
+---
+
+## 3.
+
+<!-- Your criterion. -->
+
+
+
+**Why this target:**
+
+
+
+---
+
+## 4.
+
+<!-- Your criterion. -->
+
+
+
+**Why this target:**
+
+
+
+---
+
+## 5.
+
+<!-- Your criterion. -->
+
+
+
+**Why this target:**
+
+

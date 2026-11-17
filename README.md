@@ -1323,3 +1323,79 @@ all rate limits, while accounting for shared networks.
 ---
 
 📖 **How to run this project: [RUNNING.md](RUNNING.md)**
+
+<!-- ═════════════════════════════════════════════════════════════════════
+     CAPSTONE — an addition beyond the unit 7/8 submission above.
+
+     Everything above this line is the graded unit 7/8 submission and is left
+     exactly as it was. This section documents a further, personal extension
+     to Provenance Guard: two pieces of work, informally called
+
+       Option A — Deployment & Instrumentation
+       Option B — Hardening
+
+     Nine sub-sections are stubbed below, numbered only, waiting for content
+     to arrive step by step.
+     ═════════════════════════════════════════════════════════════════════ -->
+
+---
+
+## Capstone
+
+A further extension to Provenance Guard, beyond the graded unit 7/8 work
+above: **Option A (Deployment & Instrumentation)** and **Option B
+(Hardening)**. Built and documented step by step; each sub-section below is
+filled in as its piece lands.
+
+### 1. What This Extends
+
+I am extending **Provenance Guard**: the dual-signal AI text detection and
+appeal web service built across `app.py`, `detector.py`, `stylometry.py`,
+`scoring.py`, `audit.py`, and `config.py` (the service documented in the unit
+7/8 submission above).
+
+### 2. The Shape
+
+I am implementing **Shape B — Harden against failure**, alongside the
+mandatory **Shape A — Deploy and instrument operational layer**.
+
+Shape B is four concrete upgrades:
+
+1. **Transactional, version-stamped audit logging** (`audit.py`, `config.py`)
+2. **Statistical sample gates & zero-division math guards** (`app.py`,
+   `stylometry.py`)
+3. **Timeout-isolated gpt2 execution with safe-fail degradation**
+   (`detector.py`, `scoring.py`)
+4. **Forensic SHA-256 input sanitization & payload truncation boundaries**
+   (`app.py`)
+
+### 3. Cut Scope (Out-of-Scope Decisions)
+
+- I am not swapping gpt2 for a larger model or retraining weights.
+- I am not recalibrating the 0.40 and 0.85 decision thresholds.
+- I am not building an automated appeal re-evaluation pipeline or
+  user-facing frontend.
+
+### 4.
+
+
+
+### 5.
+
+
+
+### 6.
+
+
+
+### 7.
+
+
+
+### 8.
+
+
+
+### 9.
+
+
