@@ -51,7 +51,8 @@ def emit_telemetry(*, endpoint: str, content_id: str | None, creator_id,
                    latency_ms: float = 0.0, model_ms: float = 0.0,
                    style_ms: float = 0.0, combined_score=None,
                    model_score=None, style_score=None, guess=None,
-                   truncated: bool = False, status: str = "rejected") -> dict:
+                   truncated: bool = False, tokens_evaluated: int | None = None,
+                   status: str = "rejected") -> dict:
     """Write one canonical telemetry event to stdout and the persistent JSONL."""
     entry = {
         "timestamp": __import__("datetime").datetime.now(
@@ -69,6 +70,7 @@ def emit_telemetry(*, endpoint: str, content_id: str | None, creator_id,
         "guess": guess,
         "disagreement_triggered": scoring.disagreement_triggered(model_score, style_score),
         "truncated": truncated,
+        "tokens_evaluated": tokens_evaluated,
         "status": status,
         "config_hash": config.generate_config_hash(),
     }
@@ -364,6 +366,7 @@ def submit():
             latency_ms=0.0, model_ms=0.0, style_ms=0.0,
             combined_score=None, model_score=None, style_score=None,
             guess=guess, truncated=text_truncated,
+            tokens_evaluated=tokens_evaluated,
             status="insufficient_evidence",
         )
         return jsonify({
@@ -418,7 +421,8 @@ def submit():
             endpoint="/submit", content_id=content_id, creator_id=creator_id,
             latency_ms=model_ms + style_ms, model_ms=model_ms, style_ms=style_ms,
             combined_score=None, model_score=None, style_score=style_score,
-            guess=guess, truncated=text_truncated, status="degraded",
+            guess=guess, truncated=text_truncated,
+            tokens_evaluated=tokens_evaluated, status="degraded",
         )
         return jsonify({
             "content_id": content_id,
@@ -460,7 +464,8 @@ def submit():
             endpoint="/submit", content_id=content_id, creator_id=creator_id,
             latency_ms=model_ms + style_ms, model_ms=model_ms, style_ms=style_ms,
             combined_score=None, model_score=None, style_score=style_score,
-            guess=guess, truncated=text_truncated, status="degraded",
+            guess=guess, truncated=text_truncated,
+            tokens_evaluated=tokens_evaluated, status="degraded",
         )
         return jsonify({
             "content_id": content_id,
@@ -527,6 +532,7 @@ def submit():
         latency_ms=model_ms + style_ms, model_ms=model_ms, style_ms=style_ms,
         combined_score=combined_score, model_score=model_score,
         style_score=style_score, guess=guess, truncated=text_truncated,
+        tokens_evaluated=tokens_evaluated,
         status="decided",
     )
 
@@ -627,6 +633,7 @@ def appeal():
         style_score=decision.get("style_score"),
         guess=decision.get("guess"),
         truncated=decision.get("text_truncated", False),
+        tokens_evaluated=decision.get("tokens_evaluated"),
         status="under_review",
     )
 

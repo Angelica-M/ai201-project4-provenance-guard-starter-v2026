@@ -158,6 +158,18 @@ class Submit(ServiceTestCase):
             self.assertIn(field, entry)
             self.assertIsNotNone(entry[field], field)
 
+    def test_telemetry_reports_the_evaluated_token_count(self):
+        response = self.submit()
+        data = response.get_json()
+        events = [
+            json.loads(line)
+            for line in (self.tmp / "telemetry.jsonl").read_text(
+                encoding="utf-8"
+            ).splitlines()
+        ]
+        (event,) = [row for row in events if row["content_id"] == data["content_id"]]
+        self.assertEqual(event["tokens_evaluated"], data["tokens_evaluated"])
+
 
 class SubmitRefusals(ServiceTestCase):
     """Bad input gets a clean 4xx, never a crash, and leaves a trace."""
