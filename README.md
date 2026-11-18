@@ -1387,7 +1387,25 @@ Shape B is four concrete upgrades:
 - I am not building an automated appeal re-evaluation pipeline or
   user-facing frontend.
 
-### 4. Instrumentation
+### 4. Running It
+
+The verified run path is a local Windows terminal using Python 3.13.7. From
+the repository root, create a virtual environment, install the pinned direct
+dependencies with `python -m pip install -r requirements.txt`, then start the
+service with:
+
+```powershell
+python app.py
+```
+
+The Flask server listens on `127.0.0.1:5000`. The first inference downloads
+the GPT-2 model into the local cache (about 550 MB); internet access is needed
+for that initial download. `requirements.txt` pins CPU-only PyTorch, so no GPU
+or API key is required. The exact environment setup, smoke test, and Linux
+Gunicorn command are in [RUNNING.md](RUNNING.md). The measured trials below
+used the local Windows Flask server; a hosted deployment was not verified.
+
+### 5. Instrumentation
 
 Every `/submit` and `/appeal` emits one structured JSON line to stdout and
 `logs/telemetry.jsonl`. Creator IDs are SHA-256 hashed. The measured
@@ -1414,7 +1432,7 @@ Failed/degraded run:
 {"timestamp":"2026-11-18T00:14:54.942+00:00","endpoint":"/submit","content_id":"88472897-2baf-4d4e-af57-7d54dbfa798e","creator_id":"0327ea625bf0b128b3a409f254917b92f371d04edea47c2382d674d585c82c48","latency_ms":3013.781,"model_ms":3013.511,"style_ms":0.270,"combined_score":null,"model_score":null,"style_score":1.0,"guess":"unsure","disagreement_triggered":false,"truncated":false,"status":"degraded","config_hash":"03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451"}
 ```
 
-### 5. What It Costs
+### 6. What It Costs
 
 The ten steady-state telemetry events printed above have a combined
 `latency_ms` of **2,027.246 ms**, a mean of **202.7246 ms (0.2027246 seconds)
@@ -1434,6 +1452,12 @@ This is approximately **10.14 minutes per month in measured model/style
 elapsed time**, before startup, idle RAM, and infrastructure overhead. No
 OS-level CPU-seconds or provider bill were measured.
 
+The same ten telemetry records break down to **2,024.932 ms of model time**
+(202.493 ms per run) and **2.313 ms of style time** (0.231 ms per run).
+GPT-2 accounts for **99.89%** of their summed model/style time and is the
+dominant stage. The per-field values are rounded, so their summed stage totals
+can differ from the separately rounded `latency_ms` total by 0.001 ms.
+
 Earlier versions of this section reported a 225.574 ms mean and a 2.322114 s
 batch wall time. The 225.574 ms figure cannot be reproduced from the ten
 preserved telemetry events, whose mean is 202.7246 ms. The batch wall-time
@@ -1441,7 +1465,7 @@ figure has no surviving benchmark output or script; if it covered the same
 ten requests, it implies 232.2114 ms per request, but its timing boundaries
 cannot be verified. Neither unsupported figure is used in the estimate above.
 
-### 6. What's Still Broken
+### 7. What's Still Broken
 
 - **Short/degenerate input acceptance:** Criterion 1 remained at 8/10 in each
   post-fix trial. Empty and punctuation-only strings receive HTTP 400 during
@@ -1468,7 +1492,7 @@ worker with a bounded request queue and restart-on-timeout behavior**. A
 separate process can be terminated and restarted when inference hangs, unlike
 an active Python thread.
 
-### 7. How I Used AI
+### 8. How I Used AI
 
 **Moment 1: hardening short-text and inference paths**
 
@@ -1496,7 +1520,7 @@ an active Python thread.
   app suite passed, and three repeat trials confirmed that long-text
   telemetry reported `tokens_evaluated: 400` in all 5/5 cases each time.
 
-### 8. Run Log and Verdicts — initial trials
+### 9. Run Log and Verdicts — initial trials
 
 The five capstone criteria were run three times against unchanged application
 code using `run_capstone_eval.py`. The normal service ran locally with the
@@ -1516,7 +1540,7 @@ post-improvement results.
 | 4. Payload cap and truncation metadata | 5/5 cap + 5/5 long | 5/5 cap, 0/5 long telemetry | 5/5 cap, 0/5 long telemetry | 5/5 cap, 0/5 long telemetry | MISSED |
 | 5. Warm latency and telemetry completeness | >=9/10 fast + 10/10 telemetry | 10/10 + 10/10 | 10/10 + 10/10 | 10/10 + 10/10 | MET |
 
-### 9. The Improvement
+### 10. The Improvement
 
 **Root-cause diagnoses from the initial trials**
 
@@ -1539,6 +1563,11 @@ through normal, degraded, insufficient-evidence, and appeal telemetry. This
 fixes the exact missing field without changing model inference or input
 validation. The added `test_app.py` regression test checks that a submitted
 response and its telemetry entry report the same token count.
+
+The direct cost is one additional integer field per telemetry record. The
+change adds no model call or scoring work. I did not benchmark file-write
+latency before and after this change, so any telemetry-write overhead beyond
+the slightly larger JSON record is unmeasured.
 
 The committed criteria were unchanged. The same three-run evaluator was run
 again after the fix, without further code changes between trials:
