@@ -227,41 +227,78 @@ Deployment & Instrumentation** and **Option B — Hardening**). Same rules as
 the original five: each names a number or an observable outcome, and each has
 a reason underneath.
 
-### 1. Audit storage
-At least 100 decisions submitted in succession must leave 100 rows in SQLite,
-and `audit.export_audit_jsonl()` must produce valid JSON Lines containing the
-same entry count.
+### 1. Minimum-Evidence and Short-Text Math Guard (Option B)
 
-**Why this target:** Transactional storage and an export must agree for appeal
-and compliance review.
+**Target:** `10 of 10` short or degenerate text submissions (`< 30` words or
+`< 3` sentences), including 0-sentence strings and `"Neat. Black. Smug."`,
+must return HTTP `200` with `guess == "unsure"`,
+`reason_code == "insufficient_text_length"`, and zero unhandled
+`ZeroDivisionError` exceptions.
 
-### 2. Appeal idempotency
-Repeating `/appeal` for the same `content_id` 10 times must create one appeal
-entry and return HTTP 200 each time.
+**Pass/fail check:** Submit the same 10-case set through `/submit` and verify
+the status code, body fields, and process exception count for each case.
 
-**Why this target:** Duplicate appeals add noise and can create conflicting
-review records.
+**Why this target:** Stylometric variance requires enough sentences to be
+statistically meaningful. A score below `10 of 10` means malformed or ultra-short
+inputs can still crash a worker or produce false-positive AI flags.
 
-### 3. Evidence floor
-For 20 inputs with fewer than 30 words or fewer than 3 sentences, all 20 must
-return `guess: "unsure"` without calling the model.
+### 2. Safe Degradation on GPT-2 Timeout (Option B)
 
-**Why this target:** Very small samples do not provide enough evidence for a
-reliable detector result.
+**Target:** `5 of 5` `/submit` requests that exceed the `3.0s` inference timeout
+(injected delay or tight timeout configuration) must return HTTP `200` within
+`3.5s` total latency, with `model_score: null`, `guess: "unsure"`, and an audit
+row whose `status` is `"degraded"`.
 
-### 4. Degraded inference
-At least 10 forced timeout or inference failures must return HTTP 200,
-`status: "degraded"`, `model_score: null`, and no combined score.
+**Pass/fail check:** Inject 5 model delays longer than `3.0s`, measure wall
+latency in milliseconds, and confirm every response and matching audit row.
 
-**Why this target:** Users and reviewers need a clear safe fallback rather than
-a service crash or a false label.
+**Why this target:** GPT-2 inference is CPU-bound. Without a hard circuit
+breaker, one slow forward pass can block a worker and delay all incoming traffic.
 
-### 5. Sanitization and payload limits
-The exact incoming text must produce the recorded `raw_sha256`; 25,001-character
-payloads must return 413, and text beyond 400 GPT-2 tokens must report
-`text_truncated: true` with `tokens_evaluated: 400`.
+### 3. Appeal Idempotency and Version-Stamped Audit Integrity (Option B)
 
-**Why this target:** Non-repudiation and bounded processing prevent ambiguous
-inputs and runaway inference costs.
+**Target:** `5 of 5` duplicate `/appeal` requests for the same `content_id`,
+whether concurrent or sequential, must leave exactly `1` unique
+`under_review` appeal record in SQLite and the JSONL export. Additionally,
+`100%` of `/submit` audit rows must contain a non-null `config_hash` and
+`raw_sha256`.
+
+**Pass/fail check:** Repeat 5 appeal submissions across 5 distinct content IDs,
+deduplicate by `content_id` plus `event == "appeal"`, and scan all `/submit`
+audit rows for the two required provenance fields.
+
+**Why this target:** Duplicate retries must not corrupt the compliance audit
+trail, and each historical decision must remain tied to the exact model and
+threshold configuration active when it was scored.
+
+### 4. Payload Boundary and Truncation Transparency (Options B and A)
+
+**Target:** `5 of 5` submissions exceeding `25,000` characters must be rejected
+cleanly with HTTP `413` or `400` and no OOM/crash. Separately, `5 of 5` valid
+submissions between `500` and `2,000` words must complete with
+`text_truncated: true` and `tokens_evaluated: 400` in both the API response and
+structured telemetry log.
+
+**Pass/fail check:** Send five oversized payloads and five valid long payloads,
+then compare response fields and the matching `/submit` telemetry entries.
+
+**Why this target:** Unbounded payloads can exhaust container memory, while
+silent truncation hides from writers and reviewers that only the first 400
+tokens were evaluated.
+
+### 5. Warm End-to-End Latency and Telemetry Completeness (Core and Option A)
+
+**Target:** At least `9 of 10` warm `/submit` requests under `400` tokens must
+complete in under `1.5 seconds` (`1500 ms`) end-to-end. All `10 of 10` requests
+must emit exactly one valid JSONL telemetry line containing `content_id`,
+`model_ms`, `style_ms`, `disagreement_triggered`, and `guess`.
+
+**Pass/fail check:** Warm GPT-2 once, send 10 under-limit submissions, compare
+end-to-end timing to `1500 ms`, and validate exactly one matching telemetry
+line per `content_id`.
+
+**Why this target:** Publishing integrations need sub-1.5s warm responses to
+avoid slowing workflows, and complete telemetry is required for downstream
+unsure-rate and appeal-rate monitoring.
 
 
