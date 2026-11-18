@@ -1490,22 +1490,7 @@ an active Python thread.
   app suite passed, and three repeat trials confirmed that long-text
   telemetry reported `tokens_evaluated: 400` in all 5/5 cases each time.
 
-### 8.
-
-
-
-### 7.
-
-
-
-### 8.
-
-
-
-### 9.
-
-
-### Run Log and Verdicts — Milestone 5 initial trials
+### 8. Run Log and Verdicts — initial trials
 
 The five capstone criteria were run three times against unchanged application
 code using `run_capstone_eval.py`. The normal service ran locally with the
@@ -1525,7 +1510,7 @@ post-improvement results.
 | 4. Payload cap and truncation metadata | 5/5 cap + 5/5 long | 5/5 cap, 0/5 long telemetry | 5/5 cap, 0/5 long telemetry | 5/5 cap, 0/5 long telemetry | MISSED |
 | 5. Warm latency and telemetry completeness | >=9/10 fast + 10/10 telemetry | 10/10 + 10/10 | 10/10 + 10/10 | 10/10 + 10/10 | MET |
 
-### The Improvement
+### 9. The Improvement
 
 **Root-cause diagnoses from the initial trials**
 
@@ -1653,6 +1638,3 @@ both contain `tokens_evaluated: 400`:
 ```json
 {"combined_score":0.9988,"config_hash":"03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451","content_id":"24603cff-c4be-4716-8ac4-c0b2d4fab721","creator_id":"f5ca2b585ee6819ae8cef75df48f150210efcde1a5fa7d6deb0b70233de2b391","disagreement_triggered":false,"endpoint":"/submit","guess":"ai","latency_ms":611.475,"model_ms":609.496,"model_score":0.9975,"status":"decided","style_ms":1.979,"style_score":1.0,"timestamp":"2026-11-18T01:19:06.996+00:00","tokens_evaluated":400,"truncated":true}
 ```
-
-
-
