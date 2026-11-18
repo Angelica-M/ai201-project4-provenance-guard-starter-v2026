@@ -53,6 +53,22 @@ curl.exe -X GET http://127.0.0.1:8000/health
 Structured telemetry is appended to `logs/telemetry.jsonl` and also emitted once
 as JSON to stdout for each `/submit` and `/appeal` request.
 
+## Capstone acceptance trials
+
+With the normal service on port 8000 and the injected-delay fixture on port
+8001, run each independent trial from the repository root:
+
+```powershell
+python run_capstone_eval.py --run-number 1
+python run_capstone_eval.py --run-number 2
+python run_capstone_eval.py --run-number 3
+```
+
+`capstone_timeout_server.py` is a local-only fixture for criterion 2; it waits
+3.2 seconds inside the patched perplexity call so the detector's 3.0-second
+timeout and degraded audit path can be measured. Each trial writes detailed
+request/response evidence to `results/capstone_run_<n>.json`.
+
 ## Optional container deployment
 
 The `Dockerfile` installs CPU-only dependencies and pre-downloads GPT-2 during
