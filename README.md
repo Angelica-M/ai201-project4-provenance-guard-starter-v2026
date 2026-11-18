@@ -1446,10 +1446,10 @@ code using `run_capstone_eval.py`. The normal service ran locally with the
 Windows Flask server because Gunicorn requires POSIX `fcntl`; the timeout cases
 used `capstone_timeout_server.py`, which injected a 3.2-second perplexity delay.
 The machine had Python 3.13.7 and the GPT-2 model was warm for the normal
-latency runs. Full request-by-request results are in
-[`results/capstone_run_1.json`](results/capstone_run_1.json),
-[`results/capstone_run_2.json`](results/capstone_run_2.json), and
-[`results/capstone_run_3.json`](results/capstone_run_3.json).
+latency runs. Initial request-by-request results are preserved in commit
+`1a46b8d` at `results/capstone_run_1.json` through
+`results/capstone_run_3.json`; those paths in the current tree contain the
+post-improvement results.
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---:|---:|---:|---:|---|
@@ -1458,6 +1458,48 @@ latency runs. Full request-by-request results are in
 | 3. Appeal idempotency and audit integrity | 5/5 | 5/5 | 5/5 | 5/5 | MET |
 | 4. Payload cap and truncation metadata | 5/5 cap + 5/5 long | 5/5 cap, 0/5 long telemetry | 5/5 cap, 0/5 long telemetry | 5/5 cap, 0/5 long telemetry | MISSED |
 | 5. Warm latency and telemetry completeness | >=9/10 fast + 10/10 telemetry | 10/10 + 10/10 | 10/10 + 10/10 | 10/10 + 10/10 | MET |
+
+### The Improvement
+
+**Root-cause diagnoses from the initial trials**
+
+- **Criterion 1 (`app.py::submit`, validation before the evidence gate):** the
+  route returns `400 invalid_input` for empty strings at `not text.strip()` and
+  punctuation-only strings at the alphanumeric check. Both checks run before
+  the `<30 words or <3 sentences` branch, so these zero-sentence strings never
+  reach the intended `200 / unsure / insufficient_text_length` response. The
+  remaining 8 valid short inputs passed in all three trials. This is an
+  interaction with the existing invalid-input contract, not a stylometry
+  divide-by-zero failure.
+- **Criterion 4 (`app.py::emit_telemetry`):** `submit` already computed and
+  returned `tokens_evaluated: 400`, and the audit decision kept it, but the
+  telemetry event only wrote the boolean `truncated`. Therefore all five
+  long-text responses had the count while none of their telemetry events did.
+
+**One targeted fix:** add `tokens_evaluated` to the structured telemetry event
+and pass the count already computed by `submit` (and recorded in the decision)
+through normal, degraded, insufficient-evidence, and appeal telemetry. This
+fixes the exact missing field without changing model inference or input
+validation. The added `test_app.py` regression test checks that a submitted
+response and its telemetry entry report the same token count.
+
+The committed criteria were unchanged. The same three-run evaluator was run
+again after the fix, without further code changes between trials:
+
+| Criterion | Initial Run 1 / 2 / 3 | After fix Run 1 / 2 / 3 | Before -> After |
+|---|---|---|---|
+| 1. Short-text gate and math guard (10/10) | 8/10, 8/10, 8/10 | 8/10, 8/10, 8/10 | MISSED -> MISSED |
+| 2. Safe degradation on GPT-2 timeout (5/5) | 5/5, 5/5, 5/5 | 5/5, 5/5, 5/5 | MET -> MET |
+| 3. Appeal idempotency and audit integrity (5/5) | 5/5, 5/5, 5/5 | 5/5, 5/5, 5/5 | MET -> MET |
+| 4. Payload cap + long-text telemetry | 5/5 cap + 0/5 long, all trials | 5/5 cap + 5/5 long, all trials | MISSED -> MET |
+| 5. Warm latency (<1.5s) + telemetry | 10/10 fast + 10/10 complete, all trials | 10/10 fast + 10/10 complete, all trials | MET -> MET |
+
+Post-improvement detailed results are in
+[`results/capstone_run_1.json`](results/capstone_run_1.json),
+[`results/capstone_run_2.json`](results/capstone_run_2.json), and
+[`results/capstone_run_3.json`](results/capstone_run_3.json). Criterion 1
+remains unmet for this single-fix milestone; changing empty/punctuation-only
+input behavior would be a separate behavioral decision.
 
 #### Representative API responses and log records
 
@@ -1531,6 +1573,19 @@ the response content ID.
 
 ```json
 {"combined_score":0.636,"config_hash":"03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451","content_id":"50661a4c-26e9-42ce-9806-ea47c9148574","creator_id":"1690646e7b564bea6ed3018da72c75970df84cce2d6289c5aaa3fc5c8bf2ae1c","disagreement_triggered":true,"endpoint":"/submit","guess":"unsure","latency_ms":158.401,"model_ms":157.971,"model_score":0.8872,"status":"decided","style_ms":0.43,"style_score":0.444,"timestamp":"2026-11-18T01:00:45.033+00:00","truncated":false}
+```
+
+#### Post-improvement evidence
+
+The long-text response and its matching `app.py::emit_telemetry` event now
+both contain `tokens_evaluated: 400`:
+
+```json
+{"content_id":"24603cff-c4be-4716-8ac4-c0b2d4fab721","guess":"ai","confidence":0.9988,"model_score":0.9975,"style_score":1.0,"combined_score":0.9988,"text_truncated":true,"tokens_evaluated":400}
+```
+
+```json
+{"combined_score":0.9988,"config_hash":"03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451","content_id":"24603cff-c4be-4716-8ac4-c0b2d4fab721","creator_id":"f5ca2b585ee6819ae8cef75df48f150210efcde1a5fa7d6deb0b70233de2b391","disagreement_triggered":false,"endpoint":"/submit","guess":"ai","latency_ms":611.475,"model_ms":609.496,"model_score":0.9975,"status":"decided","style_ms":1.979,"style_score":1.0,"timestamp":"2026-11-18T01:19:06.996+00:00","tokens_evaluated":400,"truncated":true}
 ```
 
 
