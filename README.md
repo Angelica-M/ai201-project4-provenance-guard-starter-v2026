@@ -1439,4 +1439,99 @@ comparable cloud cost is the provider's CPU/compute price multiplied by
 ### 9.
 
 
+### Run Log and Verdicts — Milestone 5 initial trials
+
+The five capstone criteria were run three times against unchanged application
+code using `run_capstone_eval.py`. The normal service ran locally with the
+Windows Flask server because Gunicorn requires POSIX `fcntl`; the timeout cases
+used `capstone_timeout_server.py`, which injected a 3.2-second perplexity delay.
+The machine had Python 3.13.7 and the GPT-2 model was warm for the normal
+latency runs. Full request-by-request results are in
+[`results/capstone_run_1.json`](results/capstone_run_1.json),
+[`results/capstone_run_2.json`](results/capstone_run_2.json), and
+[`results/capstone_run_3.json`](results/capstone_run_3.json).
+
+| Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
+|---|---:|---:|---:|---:|---|
+| 1. Short-text gate and math guard | 10/10 | 8/10 | 8/10 | 8/10 | MISSED |
+| 2. Safe degradation on GPT-2 timeout | 5/5 | 5/5 | 5/5 | 5/5 | MET |
+| 3. Appeal idempotency and audit integrity | 5/5 | 5/5 | 5/5 | 5/5 | MET |
+| 4. Payload cap and truncation metadata | 5/5 cap + 5/5 long | 5/5 cap, 0/5 long telemetry | 5/5 cap, 0/5 long telemetry | 5/5 cap, 0/5 long telemetry | MISSED |
+| 5. Warm latency and telemetry completeness | >=9/10 fast + 10/10 telemetry | 10/10 + 10/10 | 10/10 + 10/10 | 10/10 + 10/10 | MET |
+
+#### Representative API responses and log records
+
+**Criterion 1 — empty text.** `app.py::submit` currently rejects empty and
+punctuation-only strings before the minimum-evidence branch. These are the two
+failures in each 10-case trial; the other 8 cases returned the required unsure
+response.
+
+```text
+HTTP 400
+```
+
+```json
+{"error":"invalid_input","message":"text must be a non-empty string."}
+```
+
+**Criterion 2 — injected timeout.** `detector.py::model_signal` hit its
+3.0-second timeout; `app.py::submit` returned a safe unsure response and
+`audit.py::log_decision` recorded `status: "degraded"`. The measured request
+latency was 3030.949 ms, within the 3500 ms bound.
+
+```json
+{"content_id":"c3961a50-895f-4e74-9484-4656a5042f73","guess":"unsure","confidence":null,"model_score":null,"style_score":0.571,"combined_score":null,"status":"degraded","reason_code":"model_inference_failed","raw_sha256":"85d9d7e6ced20f9e7e4afb53b12277dd26bc3044d205e16aed83d740aabb6568","text_truncated":false,"tokens_evaluated":61}
+```
+
+The corresponding `app.py::emit_telemetry` stdout and
+`logs/telemetry.jsonl` event:
+
+```json
+{"combined_score":null,"config_hash":"03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451","content_id":"c3961a50-895f-4e74-9484-4656a5042f73","creator_id":"919171e1c80aa6c6b2d68068768a0f7394b5946994705bc0972aa7b6054d9183","disagreement_triggered":false,"endpoint":"/submit","guess":"unsure","latency_ms":3004.993,"model_ms":3004.658,"model_score":null,"status":"degraded","style_ms":0.335,"style_score":0.571,"timestamp":"2026-11-18T01:00:27.515+00:00","truncated":false}
+```
+
+**Criterion 3 — appeal retry.** The same appeal was posted twice for this
+submission. The API returned HTTP 200 on both requests; SQLite and the
+`logs/audit.jsonl` export each contained one `under_review` appeal, and the
+decision contained both provenance hashes.
+
+```json
+{"content_id":"9ffe31ca-5193-4b37-b9f0-8100d5f06984","status":"under_review","message":"Your appeal has been recorded and this result is marked under review."}
+```
+
+**Criterion 4 — payload boundaries.** All five 25,001-character requests
+returned HTTP 413. The long-text API response reported the correct 400-token
+cap, but the paired telemetry event has only `truncated: true` and omits
+`tokens_evaluated`; therefore the long-text target failed 0/5.
+
+```json
+{"error":"text_too_long","message":"text is over 25,000 characters."}
+```
+
+Long-text API response from `app.py::submit`:
+
+```json
+{"content_id":"bc174749-b4d0-4f36-8a8e-b25bae209af1","guess":"ai","model_score":0.9975,"text_truncated":true,"tokens_evaluated":400}
+```
+
+Paired `app.py::emit_telemetry` line; absence of `tokens_evaluated` is the
+measured reason for the miss:
+
+```json
+{"combined_score":0.9988,"config_hash":"03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451","content_id":"bc174749-b4d0-4f36-8a8e-b25bae209af1","creator_id":"f5ca2b585ee6819ae8cef75df48f150210efcde1a5fa7d6deb0b70233de2b391","disagreement_triggered":false,"endpoint":"/submit","guess":"ai","latency_ms":686.276,"model_ms":683.337,"model_score":0.9975,"status":"decided","style_ms":2.938,"style_score":1.0,"timestamp":"2026-11-18T01:00:42.174+00:00","truncated":true}
+```
+
+**Criterion 5 — warm request.** This representative request completed in
+168.514 ms. `app.py::emit_telemetry` produced exactly one complete event for
+the response content ID.
+
+```json
+{"content_id":"50661a4c-26e9-42ce-9806-ea47c9148574","guess":"unsure","confidence":0.636,"model_score":0.8872,"style_score":0.444,"combined_score":0.636,"text_truncated":false,"tokens_evaluated":48}
+```
+
+```json
+{"combined_score":0.636,"config_hash":"03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451","content_id":"50661a4c-26e9-42ce-9806-ea47c9148574","creator_id":"1690646e7b564bea6ed3018da72c75970df84cce2d6289c5aaa3fc5c8bf2ae1c","disagreement_triggered":true,"endpoint":"/submit","guess":"unsure","latency_ms":158.401,"model_ms":157.971,"model_score":0.8872,"status":"decided","style_ms":0.43,"style_score":0.444,"timestamp":"2026-11-18T01:00:45.033+00:00","truncated":false}
+```
+
+
 

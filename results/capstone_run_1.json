@@ -2,17 +2,37 @@
   "run": 1,
   "checks": {
     "1_short_text_gate": {
-      "successes": 10,
+      "successes": 8,
       "total": 10,
-      "target_met": true,
+      "target_met": false,
       "details": [
+        {
+          "text": "",
+          "http_status": 400,
+          "response": {
+            "error": "invalid_input",
+            "message": "text must be a non-empty string."
+          },
+          "latency_ms": 27.897,
+          "passed": false
+        },
+        {
+          "text": "!!!",
+          "http_status": 400,
+          "response": {
+            "error": "invalid_input",
+            "message": "text must contain at least one letter or number."
+          },
+          "latency_ms": 17.866,
+          "passed": false
+        },
         {
           "text": "Neat. Black. Smug.",
           "http_status": 200,
           "response": {
             "combined_score": null,
             "confidence": null,
-            "content_id": "2199bace-88d1-4fdb-81f4-978cc4a36d09",
+            "content_id": "53309235-947e-486f-a5eb-6351981442eb",
             "guess": "unsure",
             "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
             "model_score": null,
@@ -23,7 +43,7 @@
             "text_truncated": false,
             "tokens_evaluated": 8
           },
-          "latency_ms": 11.524,
+          "latency_ms": 22.235,
           "passed": true
         },
         {
@@ -32,7 +52,7 @@
           "response": {
             "combined_score": null,
             "confidence": null,
-            "content_id": "adc377e6-2184-4f08-9198-556dc5720b74",
+            "content_id": "e2e0259b-4fcb-4e69-ad6e-47d550359903",
             "guess": "unsure",
             "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
             "model_score": null,
@@ -43,7 +63,7 @@
             "text_truncated": false,
             "tokens_evaluated": 2
           },
-          "latency_ms": 19.723,
+          "latency_ms": 14.243,
           "passed": true
         },
         {
@@ -52,7 +72,7 @@
           "response": {
             "combined_score": null,
             "confidence": null,
-            "content_id": "56e0772b-5d8f-4477-a497-5cb68e936b73",
+            "content_id": "25668bbf-f1d4-43d0-9d6c-bdab39633072",
             "guess": "unsure",
             "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
             "model_score": null,
@@ -63,7 +83,7 @@
             "text_truncated": false,
             "tokens_evaluated": 2
           },
-          "latency_ms": 32.82,
+          "latency_ms": 9.765,
           "passed": true
         },
         {
@@ -72,7 +92,7 @@
           "response": {
             "combined_score": null,
             "confidence": null,
-            "content_id": "9a489bd7-701e-4a0e-b0f4-e59a33ae356d",
+            "content_id": "84646447-0895-4c26-83db-931d5db363ab",
             "guess": "unsure",
             "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
             "model_score": null,
@@ -83,7 +103,7 @@
             "text_truncated": false,
             "tokens_evaluated": 6
           },
-          "latency_ms": 20.925,
+          "latency_ms": 10.532,
           "passed": true
         },
         {
@@ -92,7 +112,7 @@
           "response": {
             "combined_score": null,
             "confidence": null,
-            "content_id": "336f54e7-bcdf-4780-955f-e6e93c632391",
+            "content_id": "a7ca2629-5d68-4b7f-94d4-fcabc3f79fcf",
             "guess": "unsure",
             "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
             "model_score": null,
@@ -103,7 +123,7 @@
             "text_truncated": false,
             "tokens_evaluated": 4
           },
-          "latency_ms": 9.237,
+          "latency_ms": 26.609,
           "passed": true
         },
         {
@@ -112,7 +132,7 @@
           "response": {
             "combined_score": null,
             "confidence": null,
-            "content_id": "d1b47403-4aa9-4412-a0e6-e76b7a7eab73",
+            "content_id": "58ec5262-a4a8-4823-a665-9772c123ac9a",
             "guess": "unsure",
             "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
             "model_score": null,
@@ -123,47 +143,7 @@
             "text_truncated": false,
             "tokens_evaluated": 3
           },
-          "latency_ms": 19.555,
-          "passed": true
-        },
-        {
-          "text": "The quiet room.",
-          "http_status": 200,
-          "response": {
-            "combined_score": null,
-            "confidence": null,
-            "content_id": "e812d132-659c-48b3-a687-b2625c31d3ab",
-            "guess": "unsure",
-            "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
-            "model_score": null,
-            "raw_sha256": "d4c879d575da754ffd8efba4f841fc3bd42c52c9fc018d0fb13bab3804e54352",
-            "reason_code": "insufficient_text_length",
-            "status": "insufficient_evidence",
-            "style_score": null,
-            "text_truncated": false,
-            "tokens_evaluated": 4
-          },
-          "latency_ms": 22.058,
-          "passed": true
-        },
-        {
-          "text": "A writer.",
-          "http_status": 200,
-          "response": {
-            "combined_score": null,
-            "confidence": null,
-            "content_id": "da4911ad-940e-43b8-ae76-b94372177d47",
-            "guess": "unsure",
-            "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
-            "model_score": null,
-            "raw_sha256": "5c8a6a8cd1e7d5af508ea0d85d15d6e85c3e91fba3d1a6453235618fcf60b229",
-            "reason_code": "insufficient_text_length",
-            "status": "insufficient_evidence",
-            "style_score": null,
-            "text_truncated": false,
-            "tokens_evaluated": 3
-          },
-          "latency_ms": 29.072,
+          "latency_ms": 9.078,
           "passed": true
         },
         {
@@ -172,7 +152,7 @@
           "response": {
             "combined_score": null,
             "confidence": null,
-            "content_id": "9a95ff1b-d77d-4b2d-bebb-ecbd0033c226",
+            "content_id": "b35ebe4e-cf64-4c16-8e36-59dedc5eabeb",
             "guess": "unsure",
             "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
             "model_score": null,
@@ -183,7 +163,7 @@
             "text_truncated": false,
             "tokens_evaluated": 4
           },
-          "latency_ms": 32.633,
+          "latency_ms": 21.916,
           "passed": true
         },
         {
@@ -192,7 +172,7 @@
           "response": {
             "combined_score": null,
             "confidence": null,
-            "content_id": "f2075bbb-7f8e-441c-adcf-bb2c8654340b",
+            "content_id": "b32c8261-f5b5-4ff7-90e9-248d64d4559d",
             "guess": "unsure",
             "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
             "model_score": null,
@@ -203,7 +183,7 @@
             "text_truncated": false,
             "tokens_evaluated": 5
           },
-          "latency_ms": 21.824,
+          "latency_ms": 21.706,
           "passed": true
         }
       ]
@@ -218,7 +198,7 @@
           "response": {
             "combined_score": null,
             "confidence": null,
-            "content_id": "78e00a8f-fcc1-4ef7-b2cb-ddcbaa23eb3e",
+            "content_id": "ad78e37f-8041-49e5-a8f6-d1cc21314d49",
             "guess": "unsure",
             "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
             "model_score": null,
@@ -229,11 +209,11 @@
             "text_truncated": false,
             "tokens_evaluated": 61
           },
-          "latency_ms": 3017.944,
+          "latency_ms": 3029.82,
           "audit_row": {
             "combined_score": null,
             "config_hash": "03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451",
-            "content_id": "78e00a8f-fcc1-4ef7-b2cb-ddcbaa23eb3e",
+            "content_id": "ad78e37f-8041-49e5-a8f6-d1cc21314d49",
             "creator_id": "cap-c2-1-0",
             "error": "GPT-2 inference timed out after 3.0 seconds.",
             "guess": "unsure",
@@ -244,7 +224,7 @@
             "status": "degraded",
             "style_score": 0.571,
             "text_truncated": false,
-            "timestamp": "2026-11-18T00:57:25+00:00",
+            "timestamp": "2026-11-18T00:59:36+00:00",
             "tokens_evaluated": 61
           },
           "passed": true
@@ -254,7 +234,7 @@
           "response": {
             "combined_score": null,
             "confidence": null,
-            "content_id": "74ff9312-54d0-456c-84a7-35a227ee7deb",
+            "content_id": "49e87ad7-6f3b-4a1d-a2c6-385d5320f855",
             "guess": "unsure",
             "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
             "model_score": null,
@@ -265,11 +245,11 @@
             "text_truncated": false,
             "tokens_evaluated": 61
           },
-          "latency_ms": 3037.446,
+          "latency_ms": 3021.992,
           "audit_row": {
             "combined_score": null,
             "config_hash": "03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451",
-            "content_id": "74ff9312-54d0-456c-84a7-35a227ee7deb",
+            "content_id": "49e87ad7-6f3b-4a1d-a2c6-385d5320f855",
             "creator_id": "cap-c2-1-1",
             "error": "GPT-2 inference timed out after 3.0 seconds.",
             "guess": "unsure",
@@ -280,7 +260,7 @@
             "status": "degraded",
             "style_score": 0.571,
             "text_truncated": false,
-            "timestamp": "2026-11-18T00:57:28+00:00",
+            "timestamp": "2026-11-18T00:59:40+00:00",
             "tokens_evaluated": 61
           },
           "passed": true
@@ -290,7 +270,7 @@
           "response": {
             "combined_score": null,
             "confidence": null,
-            "content_id": "ac2ccadd-cf3b-48ad-8f2e-4546b148a297",
+            "content_id": "cdc8e597-e6f9-4dc9-ae3f-1d2147ae3fcd",
             "guess": "unsure",
             "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
             "model_score": null,
@@ -301,11 +281,11 @@
             "text_truncated": false,
             "tokens_evaluated": 61
           },
-          "latency_ms": 3036.955,
+          "latency_ms": 3023.64,
           "audit_row": {
             "combined_score": null,
             "config_hash": "03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451",
-            "content_id": "ac2ccadd-cf3b-48ad-8f2e-4546b148a297",
+            "content_id": "cdc8e597-e6f9-4dc9-ae3f-1d2147ae3fcd",
             "creator_id": "cap-c2-1-2",
             "error": "GPT-2 inference timed out after 3.0 seconds.",
             "guess": "unsure",
@@ -316,7 +296,7 @@
             "status": "degraded",
             "style_score": 0.571,
             "text_truncated": false,
-            "timestamp": "2026-11-18T00:57:31+00:00",
+            "timestamp": "2026-11-18T00:59:43+00:00",
             "tokens_evaluated": 61
           },
           "passed": true
@@ -326,7 +306,7 @@
           "response": {
             "combined_score": null,
             "confidence": null,
-            "content_id": "3d4d8ed2-a290-425b-8f59-76325c004082",
+            "content_id": "ee8963f9-ef99-43ee-acde-1e34d814327f",
             "guess": "unsure",
             "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
             "model_score": null,
@@ -337,11 +317,11 @@
             "text_truncated": false,
             "tokens_evaluated": 61
           },
-          "latency_ms": 3038.79,
+          "latency_ms": 3040.497,
           "audit_row": {
             "combined_score": null,
             "config_hash": "03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451",
-            "content_id": "3d4d8ed2-a290-425b-8f59-76325c004082",
+            "content_id": "ee8963f9-ef99-43ee-acde-1e34d814327f",
             "creator_id": "cap-c2-1-3",
             "error": "GPT-2 inference timed out after 3.0 seconds.",
             "guess": "unsure",
@@ -352,7 +332,7 @@
             "status": "degraded",
             "style_score": 0.571,
             "text_truncated": false,
-            "timestamp": "2026-11-18T00:57:34+00:00",
+            "timestamp": "2026-11-18T00:59:46+00:00",
             "tokens_evaluated": 61
           },
           "passed": true
@@ -362,7 +342,7 @@
           "response": {
             "combined_score": null,
             "confidence": null,
-            "content_id": "f9dfa8a9-da6c-4376-84e1-de18a064978d",
+            "content_id": "5952ae1e-c16a-4d1c-a0a9-d2f8619997a4",
             "guess": "unsure",
             "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
             "model_score": null,
@@ -373,11 +353,11 @@
             "text_truncated": false,
             "tokens_evaluated": 61
           },
-          "latency_ms": 3017.872,
+          "latency_ms": 3032.145,
           "audit_row": {
             "combined_score": null,
             "config_hash": "03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451",
-            "content_id": "f9dfa8a9-da6c-4376-84e1-de18a064978d",
+            "content_id": "5952ae1e-c16a-4d1c-a0a9-d2f8619997a4",
             "creator_id": "cap-c2-1-4",
             "error": "GPT-2 inference timed out after 3.0 seconds.",
             "guess": "unsure",
@@ -388,7 +368,7 @@
             "status": "degraded",
             "style_score": 0.571,
             "text_truncated": false,
-            "timestamp": "2026-11-18T00:57:37+00:00",
+            "timestamp": "2026-11-18T00:59:49+00:00",
             "tokens_evaluated": 61
           },
           "passed": true
@@ -401,7 +381,7 @@
       "target_met": true,
       "details": [
         {
-          "content_id": "6227720b-3abc-4391-b275-3e38df161f98",
+          "content_id": "6172e5ed-4ba4-40d7-a469-2b096871960e",
           "submit_status": 200,
           "appeal_statuses": [
             200,
@@ -414,7 +394,7 @@
           "passed": true
         },
         {
-          "content_id": "448c2a6b-4f57-4956-b83e-1013d133be79",
+          "content_id": "45c1c4cd-3675-4a02-a38b-62f58d30f9f6",
           "submit_status": 200,
           "appeal_statuses": [
             200,
@@ -427,7 +407,7 @@
           "passed": true
         },
         {
-          "content_id": "20aafb0b-622e-47b0-9200-993385ccdee9",
+          "content_id": "60431405-93b8-4e4a-9346-2f3c6336b77b",
           "submit_status": 200,
           "appeal_statuses": [
             200,
@@ -440,7 +420,7 @@
           "passed": true
         },
         {
-          "content_id": "5dc0a880-81d1-4ebc-b7a7-c376c09e397d",
+          "content_id": "1b4cbddd-b183-44b0-8efe-60601af1fb77",
           "submit_status": 200,
           "appeal_statuses": [
             200,
@@ -453,7 +433,7 @@
           "passed": true
         },
         {
-          "content_id": "ea9e49b1-10e9-42b2-af2b-99dd750f6c31",
+          "content_id": "fb8e570b-f598-4dc3-926b-167baeb814e0",
           "submit_status": 200,
           "appeal_statuses": [
             200,
@@ -470,9 +450,9 @@
     "4_payload_and_truncation": {
       "oversize_successes": 5,
       "oversize_total": 5,
-      "long_successes": 5,
+      "long_successes": 0,
       "long_total": 5,
-      "target_met": true,
+      "target_met": false,
       "oversize_details": [
         {
           "http_status": 413,
@@ -521,7 +501,7 @@
           "response": {
             "combined_score": 0.9988,
             "confidence": 0.9988,
-            "content_id": "d0b200a7-1199-4ef6-b0fe-9a8b8fdc4bd5",
+            "content_id": "b08dbbd8-0a96-48c5-8760-add1ce247c2f",
             "guess": "ai",
             "label": "Our checks found signs that this may have been written with an AI tool. We can't be sure, and we sometimes get this wrong. If you wrote it yourself, you can appeal and explain how you wrote it, and your appeal will be recorded and marked for review.",
             "model_score": 0.9975,
@@ -530,34 +510,34 @@
             "text_truncated": true,
             "tokens_evaluated": 400
           },
-          "latency_ms": 689.753,
+          "latency_ms": 637.813,
           "telemetry": [
             {
               "combined_score": 0.9988,
               "config_hash": "03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451",
-              "content_id": "d0b200a7-1199-4ef6-b0fe-9a8b8fdc4bd5",
+              "content_id": "b08dbbd8-0a96-48c5-8760-add1ce247c2f",
               "creator_id": "36b81be784546fd455fd0b5e1b43df17815116a4653828028dd6499e7c72dd8e",
               "disagreement_triggered": false,
               "endpoint": "/submit",
               "guess": "ai",
-              "latency_ms": 663.692,
-              "model_ms": 661.064,
+              "latency_ms": 622.488,
+              "model_ms": 619.862,
               "model_score": 0.9975,
               "status": "decided",
-              "style_ms": 2.628,
+              "style_ms": 2.626,
               "style_score": 1.0,
-              "timestamp": "2026-11-18T00:57:40.032+00:00",
+              "timestamp": "2026-11-18T00:59:51.067+00:00",
               "truncated": true
             }
           ],
-          "passed": true
+          "passed": false
         },
         {
           "http_status": 200,
           "response": {
             "combined_score": 0.9988,
             "confidence": 0.9988,
-            "content_id": "f6cafecb-9875-4b0f-a47b-6418bc98f3dc",
+            "content_id": "ecb3f3b5-af59-4df1-b2b9-dc8e0199273c",
             "guess": "ai",
             "label": "Our checks found signs that this may have been written with an AI tool. We can't be sure, and we sometimes get this wrong. If you wrote it yourself, you can appeal and explain how you wrote it, and your appeal will be recorded and marked for review.",
             "model_score": 0.9975,
@@ -566,34 +546,34 @@
             "text_truncated": true,
             "tokens_evaluated": 400
           },
-          "latency_ms": 705.556,
+          "latency_ms": 752.077,
           "telemetry": [
             {
               "combined_score": 0.9988,
               "config_hash": "03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451",
-              "content_id": "f6cafecb-9875-4b0f-a47b-6418bc98f3dc",
+              "content_id": "ecb3f3b5-af59-4df1-b2b9-dc8e0199273c",
               "creator_id": "8fbb6f6baa4917a61edd58563094e70db7a39b310d5b715a49b3717bf8aff966",
               "disagreement_triggered": false,
               "endpoint": "/submit",
               "guess": "ai",
-              "latency_ms": 658.407,
-              "model_ms": 655.276,
+              "latency_ms": 736.029,
+              "model_ms": 733.714,
               "model_score": 0.9975,
               "status": "decided",
-              "style_ms": 3.132,
+              "style_ms": 2.315,
               "style_score": 1.0,
-              "timestamp": "2026-11-18T00:57:40.737+00:00",
+              "timestamp": "2026-11-18T00:59:51.819+00:00",
               "truncated": true
             }
           ],
-          "passed": true
+          "passed": false
         },
         {
           "http_status": 200,
           "response": {
             "combined_score": 0.9988,
             "confidence": 0.9988,
-            "content_id": "67797bf3-1699-4633-9364-16075d0275b2",
+            "content_id": "ff891395-03cc-44aa-99b5-9b1f751b7c0c",
             "guess": "ai",
             "label": "Our checks found signs that this may have been written with an AI tool. We can't be sure, and we sometimes get this wrong. If you wrote it yourself, you can appeal and explain how you wrote it, and your appeal will be recorded and marked for review.",
             "model_score": 0.9975,
@@ -602,34 +582,34 @@
             "text_truncated": true,
             "tokens_evaluated": 400
           },
-          "latency_ms": 662.071,
+          "latency_ms": 647.971,
           "telemetry": [
             {
               "combined_score": 0.9988,
               "config_hash": "03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451",
-              "content_id": "67797bf3-1699-4633-9364-16075d0275b2",
+              "content_id": "ff891395-03cc-44aa-99b5-9b1f751b7c0c",
               "creator_id": "3e56ac0e732d54b14f3232b8cc1477fe1edcfe660808e78d1f0c352dc258035a",
               "disagreement_triggered": false,
               "endpoint": "/submit",
               "guess": "ai",
-              "latency_ms": 635.442,
-              "model_ms": 632.591,
+              "latency_ms": 634.075,
+              "model_ms": 631.469,
               "model_score": 0.9975,
               "status": "decided",
-              "style_ms": 2.852,
+              "style_ms": 2.607,
               "style_score": 1.0,
-              "timestamp": "2026-11-18T00:57:41.401+00:00",
+              "timestamp": "2026-11-18T00:59:52.467+00:00",
               "truncated": true
             }
           ],
-          "passed": true
+          "passed": false
         },
         {
           "http_status": 200,
           "response": {
             "combined_score": 0.9988,
             "confidence": 0.9988,
-            "content_id": "cbb87c00-8f31-47da-a54f-e8b1fe7814c7",
+            "content_id": "a98c1d0b-c838-476f-a32a-e79f5f299e9f",
             "guess": "ai",
             "label": "Our checks found signs that this may have been written with an AI tool. We can't be sure, and we sometimes get this wrong. If you wrote it yourself, you can appeal and explain how you wrote it, and your appeal will be recorded and marked for review.",
             "model_score": 0.9975,
@@ -638,34 +618,34 @@
             "text_truncated": true,
             "tokens_evaluated": 400
           },
-          "latency_ms": 722.501,
+          "latency_ms": 708.344,
           "telemetry": [
             {
               "combined_score": 0.9988,
               "config_hash": "03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451",
-              "content_id": "cbb87c00-8f31-47da-a54f-e8b1fe7814c7",
+              "content_id": "a98c1d0b-c838-476f-a32a-e79f5f299e9f",
               "creator_id": "3b2e3016fc1c96fafe39f0595cc61029be7722b261747f4fcb0e39df3e0d5e5c",
               "disagreement_triggered": false,
               "endpoint": "/submit",
               "guess": "ai",
-              "latency_ms": 689.061,
-              "model_ms": 686.07,
+              "latency_ms": 657.862,
+              "model_ms": 655.06,
               "model_score": 0.9975,
               "status": "decided",
-              "style_ms": 2.99,
+              "style_ms": 2.803,
               "style_score": 1.0,
-              "timestamp": "2026-11-18T00:57:42.123+00:00",
+              "timestamp": "2026-11-18T00:59:53.174+00:00",
               "truncated": true
             }
           ],
-          "passed": true
+          "passed": false
         },
         {
           "http_status": 200,
           "response": {
             "combined_score": 0.9988,
             "confidence": 0.9988,
-            "content_id": "aed8d927-9302-4616-930a-86b332790757",
+            "content_id": "1a8660c0-6b4f-4227-8314-4fdfa2c1c0ca",
             "guess": "ai",
             "label": "Our checks found signs that this may have been written with an AI tool. We can't be sure, and we sometimes get this wrong. If you wrote it yourself, you can appeal and explain how you wrote it, and your appeal will be recorded and marked for review.",
             "model_score": 0.9975,
@@ -674,27 +654,27 @@
             "text_truncated": true,
             "tokens_evaluated": 400
           },
-          "latency_ms": 735.233,
+          "latency_ms": 637.416,
           "telemetry": [
             {
               "combined_score": 0.9988,
               "config_hash": "03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451",
-              "content_id": "aed8d927-9302-4616-930a-86b332790757",
+              "content_id": "1a8660c0-6b4f-4227-8314-4fdfa2c1c0ca",
               "creator_id": "6d4d4b3dfeb2b05aec4d201838d49fb8677bb1bcdd7c84a5760596db0014f703",
               "disagreement_triggered": false,
               "endpoint": "/submit",
               "guess": "ai",
-              "latency_ms": 695.07,
-              "model_ms": 692.28,
+              "latency_ms": 614.02,
+              "model_ms": 610.915,
               "model_score": 0.9975,
               "status": "decided",
-              "style_ms": 2.79,
+              "style_ms": 3.106,
               "style_score": 1.0,
-              "timestamp": "2026-11-18T00:57:42.858+00:00",
+              "timestamp": "2026-11-18T00:59:53.813+00:00",
               "truncated": true
             }
           ],
-          "passed": true
+          "passed": false
         }
       ]
     },
@@ -707,13 +687,13 @@
       "details": [
         {
           "http_status": 200,
-          "content_id": "21d8f13f-1b72-4c6e-ab10-c9d4a8ea61b7",
-          "latency_ms": 193.188,
+          "content_id": "0c69a059-3467-4f56-b6f3-ff754ce2558b",
+          "latency_ms": 159.785,
           "guess": "unsure",
           "response": {
             "combined_score": 0.636,
             "confidence": 0.636,
-            "content_id": "21d8f13f-1b72-4c6e-ab10-c9d4a8ea61b7",
+            "content_id": "0c69a059-3467-4f56-b6f3-ff754ce2558b",
             "guess": "unsure",
             "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
             "model_score": 0.8872,
@@ -726,18 +706,18 @@
             {
               "combined_score": 0.636,
               "config_hash": "03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451",
-              "content_id": "21d8f13f-1b72-4c6e-ab10-c9d4a8ea61b7",
+              "content_id": "0c69a059-3467-4f56-b6f3-ff754ce2558b",
               "creator_id": "b00e53f4b17a285d64bcf4b96a54bafab5e92885c0da3d698aab2993f59be521",
               "disagreement_triggered": true,
               "endpoint": "/submit",
               "guess": "unsure",
-              "latency_ms": 181.832,
-              "model_ms": 181.552,
+              "latency_ms": 149.974,
+              "model_ms": 149.718,
               "model_score": 0.8872,
               "status": "decided",
-              "style_ms": 0.28,
+              "style_ms": 0.256,
               "style_score": 0.444,
-              "timestamp": "2026-11-18T00:57:43.053+00:00",
+              "timestamp": "2026-11-18T00:59:53.975+00:00",
               "truncated": false
             }
           ],
@@ -746,13 +726,13 @@
         },
         {
           "http_status": 200,
-          "content_id": "79ead058-4fb3-4dd3-b87b-b8e86e08af46",
-          "latency_ms": 190.485,
+          "content_id": "41dd2b51-d42c-44f4-a8e1-897c36816584",
+          "latency_ms": 169.843,
           "guess": "unsure",
           "response": {
             "combined_score": 0.636,
             "confidence": 0.636,
-            "content_id": "79ead058-4fb3-4dd3-b87b-b8e86e08af46",
+            "content_id": "41dd2b51-d42c-44f4-a8e1-897c36816584",
             "guess": "unsure",
             "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
             "model_score": 0.8872,
@@ -765,18 +745,18 @@
             {
               "combined_score": 0.636,
               "config_hash": "03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451",
-              "content_id": "79ead058-4fb3-4dd3-b87b-b8e86e08af46",
+              "content_id": "41dd2b51-d42c-44f4-a8e1-897c36816584",
               "creator_id": "0e7607f8e580c98b7ccea2d1a192053ce8b24efcabba3b6f533cb7d5b28c9d0d",
               "disagreement_triggered": true,
               "endpoint": "/submit",
               "guess": "unsure",
-              "latency_ms": 172.746,
-              "model_ms": 172.373,
+              "latency_ms": 154.714,
+              "model_ms": 154.418,
               "model_score": 0.8872,
               "status": "decided",
-              "style_ms": 0.373,
+              "style_ms": 0.296,
               "style_score": 0.444,
-              "timestamp": "2026-11-18T00:57:43.244+00:00",
+              "timestamp": "2026-11-18T00:59:54.145+00:00",
               "truncated": false
             }
           ],
@@ -785,13 +765,13 @@
         },
         {
           "http_status": 200,
-          "content_id": "e379f7ce-63cf-4f51-b7d5-612ca6d5ba8d",
-          "latency_ms": 197.821,
+          "content_id": "e5123e3b-dcf6-4361-8bc7-1c2eb51c243f",
+          "latency_ms": 167.891,
           "guess": "unsure",
           "response": {
             "combined_score": 0.636,
             "confidence": 0.636,
-            "content_id": "e379f7ce-63cf-4f51-b7d5-612ca6d5ba8d",
+            "content_id": "e5123e3b-dcf6-4361-8bc7-1c2eb51c243f",
             "guess": "unsure",
             "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
             "model_score": 0.8872,
@@ -804,18 +784,18 @@
             {
               "combined_score": 0.636,
               "config_hash": "03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451",
-              "content_id": "e379f7ce-63cf-4f51-b7d5-612ca6d5ba8d",
+              "content_id": "e5123e3b-dcf6-4361-8bc7-1c2eb51c243f",
               "creator_id": "238687379d83253594ab47fb18ded0358cc0ac22f4db2530836f43173a58edd3",
               "disagreement_triggered": true,
               "endpoint": "/submit",
               "guess": "unsure",
-              "latency_ms": 184.459,
-              "model_ms": 184.083,
+              "latency_ms": 157.603,
+              "model_ms": 156.316,
               "model_score": 0.8872,
               "status": "decided",
-              "style_ms": 0.376,
+              "style_ms": 1.286,
               "style_score": 0.444,
-              "timestamp": "2026-11-18T00:57:43.442+00:00",
+              "timestamp": "2026-11-18T00:59:54.314+00:00",
               "truncated": false
             }
           ],
@@ -824,13 +804,13 @@
         },
         {
           "http_status": 200,
-          "content_id": "7b1235d4-4552-4e65-83e7-0fcefceeea6a",
-          "latency_ms": 208.885,
+          "content_id": "501e150d-30de-4882-a8ef-8dad446103c2",
+          "latency_ms": 181.785,
           "guess": "unsure",
           "response": {
             "combined_score": 0.636,
             "confidence": 0.636,
-            "content_id": "7b1235d4-4552-4e65-83e7-0fcefceeea6a",
+            "content_id": "501e150d-30de-4882-a8ef-8dad446103c2",
             "guess": "unsure",
             "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
             "model_score": 0.8872,
@@ -843,18 +823,18 @@
             {
               "combined_score": 0.636,
               "config_hash": "03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451",
-              "content_id": "7b1235d4-4552-4e65-83e7-0fcefceeea6a",
+              "content_id": "501e150d-30de-4882-a8ef-8dad446103c2",
               "creator_id": "a4d8048fd467b3af0639847f090b593bd0795fdabbeff1302d5717449deaa8f3",
               "disagreement_triggered": true,
               "endpoint": "/submit",
               "guess": "unsure",
-              "latency_ms": 197.879,
-              "model_ms": 197.649,
+              "latency_ms": 171.271,
+              "model_ms": 170.956,
               "model_score": 0.8872,
               "status": "decided",
-              "style_ms": 0.23,
+              "style_ms": 0.315,
               "style_score": 0.444,
-              "timestamp": "2026-11-18T00:57:43.651+00:00",
+              "timestamp": "2026-11-18T00:59:54.496+00:00",
               "truncated": false
             }
           ],
@@ -863,13 +843,13 @@
         },
         {
           "http_status": 200,
-          "content_id": "6807c10f-6361-42b3-94b4-a3414cf96a43",
-          "latency_ms": 228.951,
+          "content_id": "748f7e9b-f14a-4619-a345-35b7f2299fbe",
+          "latency_ms": 172.697,
           "guess": "unsure",
           "response": {
             "combined_score": 0.636,
             "confidence": 0.636,
-            "content_id": "6807c10f-6361-42b3-94b4-a3414cf96a43",
+            "content_id": "748f7e9b-f14a-4619-a345-35b7f2299fbe",
             "guess": "unsure",
             "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
             "model_score": 0.8872,
@@ -882,18 +862,18 @@
             {
               "combined_score": 0.636,
               "config_hash": "03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451",
-              "content_id": "6807c10f-6361-42b3-94b4-a3414cf96a43",
+              "content_id": "748f7e9b-f14a-4619-a345-35b7f2299fbe",
               "creator_id": "890a67d820f5cd2479c94bc339e6476e93ad0a2e4834420a239b4d4add076ef1",
               "disagreement_triggered": true,
               "endpoint": "/submit",
               "guess": "unsure",
-              "latency_ms": 213.649,
-              "model_ms": 213.13,
+              "latency_ms": 161.27,
+              "model_ms": 161.013,
               "model_score": 0.8872,
               "status": "decided",
-              "style_ms": 0.519,
+              "style_ms": 0.257,
               "style_score": 0.444,
-              "timestamp": "2026-11-18T00:57:43.880+00:00",
+              "timestamp": "2026-11-18T00:59:54.668+00:00",
               "truncated": false
             }
           ],
@@ -902,13 +882,13 @@
         },
         {
           "http_status": 200,
-          "content_id": "5e694c4c-4553-4aa4-b555-ec347cd27729",
-          "latency_ms": 221.82,
+          "content_id": "d3df2e67-9bd6-4a60-a9c8-19ce62fa4f43",
+          "latency_ms": 176.47,
           "guess": "unsure",
           "response": {
             "combined_score": 0.636,
             "confidence": 0.636,
-            "content_id": "5e694c4c-4553-4aa4-b555-ec347cd27729",
+            "content_id": "d3df2e67-9bd6-4a60-a9c8-19ce62fa4f43",
             "guess": "unsure",
             "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
             "model_score": 0.8872,
@@ -921,18 +901,18 @@
             {
               "combined_score": 0.636,
               "config_hash": "03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451",
-              "content_id": "5e694c4c-4553-4aa4-b555-ec347cd27729",
+              "content_id": "d3df2e67-9bd6-4a60-a9c8-19ce62fa4f43",
               "creator_id": "80b594e4bf7fa204cee3a9d05e2e8481e512b534369ebd368367bdcb3c48cb2b",
               "disagreement_triggered": true,
               "endpoint": "/submit",
               "guess": "unsure",
-              "latency_ms": 211.296,
-              "model_ms": 211.087,
+              "latency_ms": 165.322,
+              "model_ms": 165.024,
               "model_score": 0.8872,
               "status": "decided",
-              "style_ms": 0.209,
+              "style_ms": 0.298,
               "style_score": 0.444,
-              "timestamp": "2026-11-18T00:57:44.102+00:00",
+              "timestamp": "2026-11-18T00:59:54.845+00:00",
               "truncated": false
             }
           ],
@@ -941,13 +921,13 @@
         },
         {
           "http_status": 200,
-          "content_id": "4c8944cb-ddda-42de-8276-a87511c507ab",
-          "latency_ms": 188.304,
+          "content_id": "369f0aed-c9a7-4d19-a442-ba2c478372c4",
+          "latency_ms": 176.408,
           "guess": "unsure",
           "response": {
             "combined_score": 0.636,
             "confidence": 0.636,
-            "content_id": "4c8944cb-ddda-42de-8276-a87511c507ab",
+            "content_id": "369f0aed-c9a7-4d19-a442-ba2c478372c4",
             "guess": "unsure",
             "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
             "model_score": 0.8872,
@@ -960,18 +940,18 @@
             {
               "combined_score": 0.636,
               "config_hash": "03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451",
-              "content_id": "4c8944cb-ddda-42de-8276-a87511c507ab",
+              "content_id": "369f0aed-c9a7-4d19-a442-ba2c478372c4",
               "creator_id": "7d346b47bb7734322fab158f652b37cf90d6b361af205a6ff0658c97f612fa0e",
               "disagreement_triggered": true,
               "endpoint": "/submit",
               "guess": "unsure",
-              "latency_ms": 175.028,
-              "model_ms": 174.704,
+              "latency_ms": 166.366,
+              "model_ms": 166.096,
               "model_score": 0.8872,
               "status": "decided",
-              "style_ms": 0.324,
+              "style_ms": 0.271,
               "style_score": 0.444,
-              "timestamp": "2026-11-18T00:57:44.290+00:00",
+              "timestamp": "2026-11-18T00:59:55.022+00:00",
               "truncated": false
             }
           ],
@@ -980,13 +960,13 @@
         },
         {
           "http_status": 200,
-          "content_id": "e28bc9f2-a077-4dc3-b772-693b4d9c086c",
-          "latency_ms": 174.988,
+          "content_id": "917f13b9-e269-4947-a6b4-020c02dd01be",
+          "latency_ms": 178.328,
           "guess": "unsure",
           "response": {
             "combined_score": 0.636,
             "confidence": 0.636,
-            "content_id": "e28bc9f2-a077-4dc3-b772-693b4d9c086c",
+            "content_id": "917f13b9-e269-4947-a6b4-020c02dd01be",
             "guess": "unsure",
             "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
             "model_score": 0.8872,
@@ -999,18 +979,18 @@
             {
               "combined_score": 0.636,
               "config_hash": "03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451",
-              "content_id": "e28bc9f2-a077-4dc3-b772-693b4d9c086c",
+              "content_id": "917f13b9-e269-4947-a6b4-020c02dd01be",
               "creator_id": "155ec1ca30f57f5efd0bb1b0610db08a93161f860cef986271d804a8e2a56dd6",
               "disagreement_triggered": true,
               "endpoint": "/submit",
               "guess": "unsure",
-              "latency_ms": 165.654,
-              "model_ms": 165.444,
+              "latency_ms": 167.604,
+              "model_ms": 167.347,
               "model_score": 0.8872,
               "status": "decided",
-              "style_ms": 0.21,
+              "style_ms": 0.256,
               "style_score": 0.444,
-              "timestamp": "2026-11-18T00:57:44.466+00:00",
+              "timestamp": "2026-11-18T00:59:55.200+00:00",
               "truncated": false
             }
           ],
@@ -1019,13 +999,13 @@
         },
         {
           "http_status": 200,
-          "content_id": "3acf4dc6-4ff7-492b-ace3-e7f5b4292df5",
-          "latency_ms": 164.633,
+          "content_id": "d99259ca-c081-4fde-9d70-46de7a3d1b33",
+          "latency_ms": 175.761,
           "guess": "unsure",
           "response": {
             "combined_score": 0.636,
             "confidence": 0.636,
-            "content_id": "3acf4dc6-4ff7-492b-ace3-e7f5b4292df5",
+            "content_id": "d99259ca-c081-4fde-9d70-46de7a3d1b33",
             "guess": "unsure",
             "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
             "model_score": 0.8872,
@@ -1038,18 +1018,18 @@
             {
               "combined_score": 0.636,
               "config_hash": "03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451",
-              "content_id": "3acf4dc6-4ff7-492b-ace3-e7f5b4292df5",
+              "content_id": "d99259ca-c081-4fde-9d70-46de7a3d1b33",
               "creator_id": "d77b102b74566171e357adc76182473e3ed6766beb6f8c139a5a6223f6771cdb",
               "disagreement_triggered": true,
               "endpoint": "/submit",
               "guess": "unsure",
-              "latency_ms": 155.452,
-              "model_ms": 155.171,
+              "latency_ms": 164.031,
+              "model_ms": 163.708,
               "model_score": 0.8872,
               "status": "decided",
-              "style_ms": 0.281,
+              "style_ms": 0.324,
               "style_score": 0.444,
-              "timestamp": "2026-11-18T00:57:44.631+00:00",
+              "timestamp": "2026-11-18T00:59:55.375+00:00",
               "truncated": false
             }
           ],
@@ -1058,13 +1038,13 @@
         },
         {
           "http_status": 200,
-          "content_id": "80209724-afb5-41e4-8cd9-c299398c0617",
-          "latency_ms": 189.691,
+          "content_id": "4bb3d700-84e0-417d-be9e-0da7c0b73e00",
+          "latency_ms": 176.048,
           "guess": "unsure",
           "response": {
             "combined_score": 0.636,
             "confidence": 0.636,
-            "content_id": "80209724-afb5-41e4-8cd9-c299398c0617",
+            "content_id": "4bb3d700-84e0-417d-be9e-0da7c0b73e00",
             "guess": "unsure",
             "label": "We can't tell whether this was written by a person or with an AI tool. Our checks aren't perfect, and plain or very formal writing can look the same to them either way. This is not a finding that anything is wrong.",
             "model_score": 0.8872,
@@ -1077,18 +1057,18 @@
             {
               "combined_score": 0.636,
               "config_hash": "03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451",
-              "content_id": "80209724-afb5-41e4-8cd9-c299398c0617",
+              "content_id": "4bb3d700-84e0-417d-be9e-0da7c0b73e00",
               "creator_id": "58871148038d3b233bd9a28c4401d28303883d69813198eabfbb98232846f132",
               "disagreement_triggered": true,
               "endpoint": "/submit",
               "guess": "unsure",
-              "latency_ms": 180.001,
-              "model_ms": 179.778,
+              "latency_ms": 166.077,
+              "model_ms": 165.795,
               "model_score": 0.8872,
               "status": "decided",
-              "style_ms": 0.223,
+              "style_ms": 0.282,
               "style_score": 0.444,
-              "timestamp": "2026-11-18T00:57:44.820+00:00",
+              "timestamp": "2026-11-18T00:59:55.552+00:00",
               "truncated": false
             }
           ],
@@ -1098,5 +1078,5 @@
       ]
     }
   },
-  "verdict": true
+  "verdict": false
 }
