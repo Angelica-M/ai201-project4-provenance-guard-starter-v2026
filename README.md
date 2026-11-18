@@ -1416,24 +1416,30 @@ Failed/degraded run:
 
 ### 5. What It Costs
 
-The 10 steady-state `/submit` requests had a recorded mean application
-processing time of **225.574 ms (0.225574 seconds) per run**. The batch's
-separately recorded wall-clock duration was 2.322114 seconds, or 232.211 ms
-per request including time outside the measured application interval. Treat
-the 225.574 ms figure as a local compute-time proxy, not an OS-level CPU
-accounting measurement. It excludes model download and warm-up: the initial
-warm-up took 3125.703 ms, and the first steady-load request took 345.563 ms.
+The ten steady-state telemetry events printed above have a combined
+`latency_ms` of **2,027.246 ms**, a mean of **202.7246 ms (0.2027246 seconds)
+per run**. In `app.py`, this field is the sum of `model_ms` and `style_ms`, so
+it measures elapsed time in those scoring stages—not OS-level CPU time or
+full-request latency. It excludes input handling, audit writes, HTTP overhead,
+and model download/warm-up. The initial warm-up took 3125.703 ms, and the
+first steady-load request took 345.563 ms.
 
 At 100 submissions per day for 30 days:
 
 `100 runs/day × 30 days = 3,000 runs/month`
 
-`3,000 runs × 0.225574 seconds/run = 676.722 seconds = 11 minutes 16.7 seconds`
+`3,000 runs × 0.2027246 seconds/run = 608.174 seconds = 10.14 minutes`
 
-That is approximately **11.28 minutes of measured application processing per
-month**, before model startup, idle RAM, and infrastructure overhead. No
-provider bill was measured; estimating dollars requires the selected host's
-CPU and memory pricing.
+This is approximately **10.14 minutes per month in measured model/style
+elapsed time**, before startup, idle RAM, and infrastructure overhead. No
+OS-level CPU-seconds or provider bill were measured.
+
+Earlier versions of this section reported a 225.574 ms mean and a 2.322114 s
+batch wall time. The 225.574 ms figure cannot be reproduced from the ten
+preserved telemetry events, whose mean is 202.7246 ms. The batch wall-time
+figure has no surviving benchmark output or script; if it covered the same
+ten requests, it implies 232.2114 ms per request, but its timing boundaries
+cannot be verified. Neither unsupported figure is used in the estimate above.
 
 ### 6. What's Still Broken
 
