@@ -1340,12 +1340,23 @@ all rate limits, while accounting for shared networks.
 
 ---
 
-## Capstone
+# Capstone 
 
 A further extension to Provenance Guard, beyond the graded unit 7/8 work
 above: **Option A (Deployment & Instrumentation)** and **Option B
 (Hardening)**. Built and documented step by step; each sub-section below is
-filled in as its piece lands.
+filled in as its piece lands. 
+
+Option B adds a hardening layer 
+without changing the happy-path detector labels.
+
+- **Versioned SQLite audit trail:** decisions and appeals are stored transactionally in `logs/audit.sqlite3` with `PRAGMA journal_mode=WAL;`. `audit.export_audit_jsonl()` exports canonical deterministic JSON Lines for compliance review.
+- **Configuration provenance:** `config.generate_config_hash()` SHA-256 fingerprints the model ID, weights, disagreement settings, and thresholds; audit entries include `config_hash`.
+- **Idempotent appeals:** repeated `/appeal` calls for one `content_id` return the existing `under_review` appeal instead of duplicating it.
+- **Evidence floor:** `/submit` bypasses scoring when text has fewer than 30 words or fewer than 3 sentences and returns `guess: "unsure"` with `reason_code: "insufficient_text_length"`.
+- **Degraded inference:** GPT-2 runs behind a one-worker, three-second timeout and a 400-token cap. Timeout or inference failures return `status: "degraded"` and no model/combined score.
+- **Payload boundaries:** `/submit` hashes the exact incoming UTF-8 text, normalizes valid text with NFKC, removes the listed zero-width characters, refuses more than 25,000 characters, and reports truncation/token evaluation metadata.
+
 
 ### 1. What This Extends
 
@@ -1376,41 +1387,7 @@ Shape B is four concrete upgrades:
 - I am not building an automated appeal re-evaluation pipeline or
   user-facing frontend.
 
-### 4.
-
-
-
-### 5.
-
-
-
-### 6.
-
-
-
-### 7.
-
-
-
-### 8.
-
-
-
-### 9.
-
-
-## Capstone — Milestone 2 (Option B: Hardening)
-
-Option B adds a hardening layer without changing the happy-path detector labels.
-
-- **Versioned SQLite audit trail:** decisions and appeals are stored transactionally in `logs/audit.sqlite3` with `PRAGMA journal_mode=WAL;`. `audit.export_audit_jsonl()` exports canonical deterministic JSON Lines for compliance review.
-- **Configuration provenance:** `config.generate_config_hash()` SHA-256 fingerprints the model ID, weights, disagreement settings, and thresholds; audit entries include `config_hash`.
-- **Idempotent appeals:** repeated `/appeal` calls for one `content_id` return the existing `under_review` appeal instead of duplicating it.
-- **Evidence floor:** `/submit` bypasses scoring when text has fewer than 30 words or fewer than 3 sentences and returns `guess: "unsure"` with `reason_code: "insufficient_text_length"`.
-- **Degraded inference:** GPT-2 runs behind a one-worker, three-second timeout and a 400-token cap. Timeout or inference failures return `status: "degraded"` and no model/combined score.
-- **Payload boundaries:** `/submit` hashes the exact incoming UTF-8 text, normalizes valid text with NFKC, removes the listed zero-width characters, refuses more than 25,000 characters, and reports truncation/token evaluation metadata.
-
-### Instrumentation
+### 4. Instrumentation
 
 Every `/submit` and `/appeal` emits one structured JSON line to stdout and
 `logs/telemetry.jsonl`. Creator IDs are SHA-256 hashed. The measured
@@ -1437,7 +1414,7 @@ Failed/degraded run:
 {"timestamp":"2026-11-18T00:14:54.942+00:00","endpoint":"/submit","content_id":"88472897-2baf-4d4e-af57-7d54dbfa798e","creator_id":"0327ea625bf0b128b3a409f254917b92f371d04edea47c2382d674d585c82c48","latency_ms":3013.781,"model_ms":3013.511,"style_ms":0.270,"combined_score":null,"model_score":null,"style_score":1.0,"guess":"unsure","disagreement_triggered":false,"truncated":false,"status":"degraded","config_hash":"03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451"}
 ```
 
-### What It Costs
+### 5. What It Costs
 
 The 10 steady-state `/submit` requests took 2.322114 seconds wall time, for an
 average of **225.574 ms per run** and **0.225574 seconds of compute-equivalent
@@ -1446,5 +1423,20 @@ the initial warm-up took 3125.703 ms, and the first steady-load request took
 345.563 ms. No cloud cost can be inferred without a provider price; the
 comparable cloud cost is the provider's CPU/compute price multiplied by
 0.225574 seconds plus the GPT-2 RAM and startup cost.
+
+### 6.
+
+
+
+### 7.
+
+
+
+### 8.
+
+
+
+### 9.
+
 
 

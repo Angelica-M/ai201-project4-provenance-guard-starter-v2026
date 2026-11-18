@@ -227,66 +227,6 @@ Deployment & Instrumentation** and **Option B — Hardening**). Same rules as
 the original five: each names a number or an observable outcome, and each has
 a reason underneath.
 
----
-
-## 1.
-
-<!-- Your criterion. It must name a number. -->
-
-
-
-**Why this target:**
-
-
-
----
-
-## 2.
-
-<!-- Your criterion. -->
-
-
-
-**Why this target:**
-
-
-
----
-
-## 3.
-
-<!-- Your criterion. -->
-
-
-
-**Why this target:**
-
-
-
----
-
-## 4.
-
-<!-- Your criterion. -->
-
-
-
-**Why this target:**
-
-
-
----
-
-## 5.
-
-<!-- Your criterion. -->
-**Why this target:**
-
-
----
-
-## Capstone Milestone 2 — Option B Hardening verification
-
 ### 1. Audit storage
 At least 100 decisions submitted in succession must leave 100 rows in SQLite,
 and `audit.export_audit_jsonl()` must produce valid JSON Lines containing the
