@@ -184,10 +184,14 @@ class SubmitRefusals(ServiceTestCase):
         response = self.client.post("/submit", data="not json", content_type="text/plain")
         self.assert_refused(response, 400, "invalid_input")
 
-    def test_text_too_short_for_the_model_is_a_422(self):
-        with mock.patch.object(detector, "model_signal",
-                               side_effect=ValueError("Text is too short to score")):
-            self.assert_refused(self.submit("Hi"), 422, "text_too_short")
+    def test_insufficient_text_bypasses_the_model_as_unsure(self):
+        with mock.patch.object(detector, "model_signal") as model:
+            response = self.submit("Hi")
+            self.assertEqual(response.status_code, 200)
+            data = response.get_json()
+            self.assertEqual(data["guess"], "unsure")
+            self.assertEqual(data["reason_code"], "insufficient_text_length")
+            model.assert_not_called()
 
     def test_control_characters_and_punctuation_only_text_are_refused(self):
         self.assert_refused(self.submit("\x00\x01 test"), 400, "invalid_input")
@@ -278,12 +282,13 @@ class Appeal(ServiceTestCase):
         self.assertEqual(len(by_id[first]), 2)
         self.assertEqual(len(by_id[second]), 1)
 
-    def test_appealing_twice_records_both_and_stays_under_review(self):
+    def test_appealing_twice_is_idempotent_and_stays_under_review(self):
         cid = self.submitted()
         self.assertEqual(self.appeal(cid, "first reason").status_code, 200)
         self.assertEqual(self.appeal(cid, "second reason").status_code, 200)
         appeals = [e for e in self.log() if e.get("event") == "appeal"]
-        self.assertEqual([a["reasoning"] for a in appeals], ["first reason", "second reason"])
+        self.assertEqual(len(appeals), 1)
+        self.assertEqual(appeals[0]["reasoning"], "first reason")
         self.assertTrue(all(a["status"] == "under_review" for a in appeals))
 
     def test_an_unknown_id_is_a_404_and_writes_no_appeal(self):

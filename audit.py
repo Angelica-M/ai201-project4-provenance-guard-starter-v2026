@@ -23,6 +23,7 @@ import json
 import threading
 import sqlite3
 from datetime import datetime, timezone
+from pathlib import Path
 
 import config
 
@@ -143,6 +144,12 @@ def _append(entry: dict) -> dict:
                 "INSERT INTO audit_entries(payload) VALUES (?)",
                 (json.dumps(entry, ensure_ascii=False, sort_keys=True),),
             )
+        # Preserve the human-readable JSONL artifact as a compatibility/export
+        # mirror of the SQLite source of truth.
+        config.AUDIT_LOG.parent.mkdir(parents=True, exist_ok=True)
+        line = json.dumps(entry, ensure_ascii=False, sort_keys=True)
+        with config.AUDIT_LOG.open("a", encoding="utf-8", newline="\n") as handle:
+            handle.write(line + "\n")
     return entry
 
 
@@ -200,8 +207,6 @@ def clear() -> int:
 
 def export_audit_jsonl(path: str | Path | None = None) -> Path:
     """Export SQLite entries to a deterministic canonical JSON Lines file."""
-    from pathlib import Path
-
     destination = Path(path) if path is not None else config.AUDIT_LOG
     destination.parent.mkdir(parents=True, exist_ok=True)
     entries = read_entries()
