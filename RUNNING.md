@@ -40,6 +40,9 @@ while leaving one model worker responsible for GPT-2 inference.
 
 On Windows, activate the virtual environment and call
 `.venv\Scripts\gunicorn.exe` if `gunicorn` is not on `PATH`.
+Gunicorn uses POSIX modules and may not start natively on Windows (`fcntl`);
+use `python app.py` for the Windows local fallback and use Gunicorn in Linux,
+WSL, Docker, or Render.
 
 Health check:
 

@@ -1410,4 +1410,41 @@ Option B adds a hardening layer without changing the happy-path detector labels.
 - **Degraded inference:** GPT-2 runs behind a one-worker, three-second timeout and a 400-token cap. Timeout or inference failures return `status: "degraded"` and no model/combined score.
 - **Payload boundaries:** `/submit` hashes the exact incoming UTF-8 text, normalizes valid text with NFKC, removes the listed zero-width characters, refuses more than 25,000 characters, and reports truncation/token evaluation metadata.
 
+### Instrumentation
+
+Every `/submit` and `/appeal` emits one structured JSON line to stdout and
+`logs/telemetry.jsonl`. Creator IDs are SHA-256 hashed. The measured
+configuration hash was `03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451`.
+
+Ten steady-state `/submit` telemetry entries:
+
+```json
+{"timestamp":"2026-11-18T00:15:23.025+00:00","endpoint":"/submit","content_id":"33a9af10-4e41-43b9-aa9c-2511cbdb808d","creator_id":"0288370c70653497170dc0378c534fa4e3cc37e3b89ca3e286596243919be588","latency_ms":294.577,"model_ms":294.317,"style_ms":0.260,"combined_score":0.9743,"model_score":0.9485,"style_score":1.0,"guess":"ai","disagreement_triggered":false,"truncated":false,"status":"decided","config_hash":"03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451"}
+{"timestamp":"2026-11-18T00:15:23.389+00:00","endpoint":"/submit","content_id":"2a297d0d-88a6-49eb-874b-edb023ff734f","creator_id":"85a3fde5f334a61527786f0b7e443177ab08378f7be54f6e98907200acc4a778","latency_ms":316.569,"model_ms":316.310,"style_ms":0.259,"combined_score":0.9743,"model_score":0.9485,"style_score":1.0,"guess":"ai","disagreement_triggered":false,"truncated":false,"status":"decided","config_hash":"03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451"}
+{"timestamp":"2026-11-18T00:15:23.703+00:00","endpoint":"/submit","content_id":"58f0a7b9-f1fc-42d7-b2a2-223713d94e68","creator_id":"cea6bf202c90ee665ff83ca57a52cb2dd611c3ba9ddb26897a8e53f8cc7e73fe","latency_ms":283.082,"model_ms":282.750,"style_ms":0.333,"combined_score":0.9743,"model_score":0.9485,"style_score":1.0,"guess":"ai","disagreement_triggered":false,"truncated":false,"status":"decided","config_hash":"03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451"}
+{"timestamp":"2026-11-18T00:15:23.891+00:00","endpoint":"/submit","content_id":"86fc1b8b-0dc4-406d-acdc-2b26eb83ded6","creator_id":"a08ac1bf38169f5ffda1b408520b8c0ab311531d00d7330c190ab0bed15d495a","latency_ms":177.583,"model_ms":177.303,"style_ms":0.280,"combined_score":0.9743,"model_score":0.9485,"style_score":1.0,"guess":"ai","disagreement_triggered":false,"truncated":false,"status":"decided","config_hash":"03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451"}
+{"timestamp":"2026-11-18T00:15:24.073+00:00","endpoint":"/submit","content_id":"f08d445b-683e-4c24-93af-fede623282ed","creator_id":"c95952a864e7c73f819db549edfe76a9a8a230e5f83334d763b08401fd9998e1","latency_ms":162.526,"model_ms":162.336,"style_ms":0.190,"combined_score":0.9743,"model_score":0.9485,"style_score":1.0,"guess":"ai","disagreement_triggered":false,"truncated":false,"status":"decided","config_hash":"03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451"}
+{"timestamp":"2026-11-18T00:15:24.251+00:00","endpoint":"/submit","content_id":"eaad8966-4d84-4e4e-9c88-70521a98158c","creator_id":"d6c90920208a5ff28f03d49997c08f40088bf48678875ed07e2efa1d383a1ee5","latency_ms":150.918,"model_ms":150.722,"style_ms":0.196,"combined_score":0.9743,"model_score":0.9485,"style_score":1.0,"guess":"ai","disagreement_triggered":false,"truncated":false,"status":"decided","config_hash":"03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451"}
+{"timestamp":"2026-11-18T00:15:24.433+00:00","endpoint":"/submit","content_id":"edb65ad9-2f12-41e7-a0fc-48fa9064dab1","creator_id":"d5747d5468027d6f6bf3097e3ce46b6642760c1433cb5e2a1928eff92e692ad1","latency_ms":159.295,"model_ms":159.098,"style_ms":0.196,"combined_score":0.9743,"model_score":0.9485,"style_score":1.0,"guess":"ai","disagreement_triggered":false,"truncated":false,"status":"decided","config_hash":"03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451"}
+{"timestamp":"2026-11-18T00:15:24.609+00:00","endpoint":"/submit","content_id":"973a9b0a-e09c-4b01-aafb-4ebc21745725","creator_id":"e365eaf4130b710e9a9bb3fa415e2c6099157d5e7b233899690625e02d3871f3","latency_ms":152.662,"model_ms":152.464,"style_ms":0.197,"combined_score":0.9743,"model_score":0.9485,"style_score":1.0,"guess":"ai","disagreement_triggered":false,"truncated":false,"status":"decided","config_hash":"03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451"}
+{"timestamp":"2026-11-18T00:15:24.788+00:00","endpoint":"/submit","content_id":"6f1a8d1c-6bba-4ce7-b02f-7a48a82f34a9","creator_id":"44abbbebea29e6900ade50a14fd2c532de9c79393a3fb51f766aed881cd540f5","latency_ms":170.136,"model_ms":169.948,"style_ms":0.188,"combined_score":0.9743,"model_score":0.9485,"style_score":1.0,"guess":"ai","disagreement_triggered":false,"truncated":false,"status":"decided","config_hash":"03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451"}
+{"timestamp":"2026-11-18T00:15:24.957+00:00","endpoint":"/submit","content_id":"9d1bae90-f193-41d1-b123-71173a02e205","creator_id":"9fb637ca31ed50df0c3a17ed2466a71e029bc2ed4c203e50547c389bbdb37f67","latency_ms":159.898,"model_ms":159.684,"style_ms":0.214,"combined_score":0.9743,"model_score":0.9485,"style_score":1.0,"guess":"ai","disagreement_triggered":false,"truncated":false,"status":"decided","config_hash":"03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451"}
+```
+
+Failed/degraded run:
+
+```json
+{"timestamp":"2026-11-18T00:14:54.942+00:00","endpoint":"/submit","content_id":"88472897-2baf-4d4e-af57-7d54dbfa798e","creator_id":"0327ea625bf0b128b3a409f254917b92f371d04edea47c2382d674d585c82c48","latency_ms":3013.781,"model_ms":3013.511,"style_ms":0.270,"combined_score":null,"model_score":null,"style_score":1.0,"guess":"unsure","disagreement_triggered":false,"truncated":false,"status":"degraded","config_hash":"03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451"}
+```
+
+### What It Costs
+
+The 10 steady-state `/submit` requests took 2.322114 seconds wall time, for an
+average of **225.574 ms per run** and **0.225574 seconds of compute-equivalent
+time per run**. This local CPU measurement excludes model download/warm-up:
+the initial warm-up took 3125.703 ms, and the first steady-load request took
+345.563 ms. No cloud cost can be inferred without a provider price; the
+comparable cloud cost is the provider's CPU/compute price multiplied by
+0.225574 seconds plus the GPT-2 RAM and startup cost.
+
 
