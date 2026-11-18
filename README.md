@@ -1618,13 +1618,32 @@ The corresponding `app.py::emit_telemetry` stdout and
 {"combined_score":null,"config_hash":"03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451","content_id":"c3961a50-895f-4e74-9484-4656a5042f73","creator_id":"919171e1c80aa6c6b2d68068768a0f7394b5946994705bc0972aa7b6054d9183","disagreement_triggered":false,"endpoint":"/submit","guess":"unsure","latency_ms":3004.993,"model_ms":3004.658,"model_score":null,"status":"degraded","style_ms":0.335,"style_score":0.571,"timestamp":"2026-11-18T01:00:27.515+00:00","truncated":false}
 ```
 
-**Criterion 3 — appeal retry.** The same appeal was posted twice for this
-submission. The API returned HTTP 200 on both requests; SQLite and the
-`logs/audit.jsonl` export each contained one `under_review` appeal, and the
-decision contained both provenance hashes.
+**Criterion 3 — appeal retry.** In Run 1, the evaluator
+`run_capstone_eval.py::run_evaluation` submitted the appeal twice. The
+`app.py::appeal` route returned HTTP 200 for both requests; it delegates
+recording to `audit.py::log_appeal`, which reuses the existing appeal on retry.
+The evaluator checked the resulting SQLite row and JSONL export. Here is the
+actual result excerpt for the first case:
 
 ```json
-{"content_id":"9ffe31ca-5193-4b37-b9f0-8100d5f06984","status":"under_review","message":"Your appeal has been recorded and this result is marked under review."}
+{
+  "content_id": "3cec0f5f-d9b4-4499-b973-1ced5b68caab",
+  "submit_status": 200,
+  "appeal_statuses": [200, 200],
+  "sqlite_appeal_count": 1,
+  "jsonl_appeal_count": 1,
+  "config_hash_present": true,
+  "raw_sha256_present": true,
+  "passed": true
+}
+```
+
+The matching persisted appeal line, produced through
+`audit.py::log_appeal` and present in `logs/audit.jsonl` (also exported from
+SQLite by `audit.py::export_audit_jsonl`), is:
+
+```json
+{"config_hash":"03ddfa9a5e3a5eb4846ad2c528eea78e4fc93949e75a06fdf03efa323b181451","content_id":"3cec0f5f-d9b4-4499-b973-1ced5b68caab","creator_id":"cap-c3-1-0","event":"appeal","reasoning":"retry 0","status":"under_review","timestamp":"2026-11-18T01:18:12+00:00"}
 ```
 
 **Criterion 4 — payload boundaries.** All five 25,001-character requests
