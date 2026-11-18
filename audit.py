@@ -134,7 +134,8 @@ def _append(entry: dict) -> dict:
     with _lock:
         db = _db_path()
         db.parent.mkdir(parents=True, exist_ok=True)
-        with sqlite3.connect(db) as connection:
+        connection = sqlite3.connect(db)
+        try:
             connection.execute("PRAGMA journal_mode=WAL;")
             connection.execute(
                 "CREATE TABLE IF NOT EXISTS audit_entries "
@@ -144,6 +145,9 @@ def _append(entry: dict) -> dict:
                 "INSERT INTO audit_entries(payload) VALUES (?)",
                 (json.dumps(entry, ensure_ascii=False, sort_keys=True),),
             )
+            connection.commit()
+        finally:
+            connection.close()
         # Preserve the human-readable JSONL artifact as a compatibility/export
         # mirror of the SQLite source of truth.
         config.AUDIT_LOG.parent.mkdir(parents=True, exist_ok=True)
@@ -164,11 +168,14 @@ def read_entries(limit: int | None = None) -> list[dict]:
     entries = []
     if db.exists():
         try:
-            with sqlite3.connect(db) as connection:
+            connection = sqlite3.connect(db)
+            try:
                 connection.execute("PRAGMA journal_mode=WAL;")
                 rows = connection.execute(
                     "SELECT payload FROM audit_entries ORDER BY id ASC"
                 ).fetchall()
+            finally:
+                connection.close()
             for (payload,) in rows:
                 try:
                     entries.append(json.loads(payload))

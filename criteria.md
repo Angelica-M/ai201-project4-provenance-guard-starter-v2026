@@ -280,9 +280,48 @@ a reason underneath.
 ## 5.
 
 <!-- Your criterion. -->
-
-
-
 **Why this target:**
+
+
+---
+
+## Capstone Milestone 2 — Option B Hardening verification
+
+### 1. Audit storage
+At least 100 decisions submitted in succession must leave 100 rows in SQLite,
+and `audit.export_audit_jsonl()` must produce valid JSON Lines containing the
+same entry count.
+
+**Why this target:** Transactional storage and an export must agree for appeal
+and compliance review.
+
+### 2. Appeal idempotency
+Repeating `/appeal` for the same `content_id` 10 times must create one appeal
+entry and return HTTP 200 each time.
+
+**Why this target:** Duplicate appeals add noise and can create conflicting
+review records.
+
+### 3. Evidence floor
+For 20 inputs with fewer than 30 words or fewer than 3 sentences, all 20 must
+return `guess: "unsure"` without calling the model.
+
+**Why this target:** Very small samples do not provide enough evidence for a
+reliable detector result.
+
+### 4. Degraded inference
+At least 10 forced timeout or inference failures must return HTTP 200,
+`status: "degraded"`, `model_score: null`, and no combined score.
+
+**Why this target:** Users and reviewers need a clear safe fallback rather than
+a service crash or a false label.
+
+### 5. Sanitization and payload limits
+The exact incoming text must produce the recorded `raw_sha256`; 25,001-character
+payloads must return 413, and text beyond 400 GPT-2 tokens must report
+`text_truncated: true` with `tokens_evaluated: 400`.
+
+**Why this target:** Non-repudiation and bounded processing prevent ambiguous
+inputs and runaway inference costs.
 
 

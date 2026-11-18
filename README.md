@@ -1399,3 +1399,15 @@ Shape B is four concrete upgrades:
 ### 9.
 
 
+## Capstone — Milestone 2 (Option B: Hardening)
+
+Option B adds a hardening layer without changing the happy-path detector labels.
+
+- **Versioned SQLite audit trail:** decisions and appeals are stored transactionally in `logs/audit.sqlite3` with `PRAGMA journal_mode=WAL;`. `audit.export_audit_jsonl()` exports canonical deterministic JSON Lines for compliance review.
+- **Configuration provenance:** `config.generate_config_hash()` SHA-256 fingerprints the model ID, weights, disagreement settings, and thresholds; audit entries include `config_hash`.
+- **Idempotent appeals:** repeated `/appeal` calls for one `content_id` return the existing `under_review` appeal instead of duplicating it.
+- **Evidence floor:** `/submit` bypasses scoring when text has fewer than 30 words or fewer than 3 sentences and returns `guess: "unsure"` with `reason_code: "insufficient_text_length"`.
+- **Degraded inference:** GPT-2 runs behind a one-worker, three-second timeout and a 400-token cap. Timeout or inference failures return `status: "degraded"` and no model/combined score.
+- **Payload boundaries:** `/submit` hashes the exact incoming UTF-8 text, normalizes valid text with NFKC, removes the listed zero-width characters, refuses more than 25,000 characters, and reports truncation/token evaluation metadata.
+
+
