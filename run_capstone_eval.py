@@ -14,14 +14,14 @@ import config
 
 ROOT = Path(__file__).parent
 SHORT_CASES = [
+    "",
+    "!!!",
     "Neat. Black. Smug.",
     "A.",
     "Hi.",
     "Plain words without punctuation",
     "One sentence only.",
     "Two words.",
-    "The quiet room.",
-    "A writer.",
     "Short sample text.",
     "A brief final example.",
 ]
@@ -258,6 +258,7 @@ def run_evaluation(args) -> dict:
             and data.get("tokens_evaluated") == 400
             and len(events) == 1
             and events[0].get("truncated") is True
+            and events[0].get("tokens_evaluated") == 400
         )
         row["telemetry"] = events
         row["passed"] = passed
