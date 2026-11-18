@@ -1416,15 +1416,81 @@ Failed/degraded run:
 
 ### 5. What It Costs
 
-The 10 steady-state `/submit` requests took 2.322114 seconds wall time, for an
-average of **225.574 ms per run** and **0.225574 seconds of compute-equivalent
-time per run**. This local CPU measurement excludes model download/warm-up:
-the initial warm-up took 3125.703 ms, and the first steady-load request took
-345.563 ms. No cloud cost can be inferred without a provider price; the
-comparable cloud cost is the provider's CPU/compute price multiplied by
-0.225574 seconds plus the GPT-2 RAM and startup cost.
+The 10 steady-state `/submit` requests had a recorded mean application
+processing time of **225.574 ms (0.225574 seconds) per run**. The batch's
+separately recorded wall-clock duration was 2.322114 seconds, or 232.211 ms
+per request including time outside the measured application interval. Treat
+the 225.574 ms figure as a local compute-time proxy, not an OS-level CPU
+accounting measurement. It excludes model download and warm-up: the initial
+warm-up took 3125.703 ms, and the first steady-load request took 345.563 ms.
 
-### 6.
+At 100 submissions per day for 30 days:
+
+`100 runs/day × 30 days = 3,000 runs/month`
+
+`3,000 runs × 0.225574 seconds/run = 676.722 seconds = 11 minutes 16.7 seconds`
+
+That is approximately **11.28 minutes of measured application processing per
+month**, before model startup, idle RAM, and infrastructure overhead. No
+provider bill was measured; estimating dollars requires the selected host's
+CPU and memory pricing.
+
+### 6. What's Still Broken
+
+- **Short/degenerate input acceptance:** Criterion 1 remained at 8/10 in each
+  post-fix trial. Empty and punctuation-only strings receive HTTP 400 during
+  input validation, before the minimum-evidence branch can return `unsure`.
+  The remaining valid short inputs passed. I stopped without changing this
+  behavior because it is an existing invalid-input contract and Milestone 6
+  was limited to one targeted fix; changing it needs an explicit API decision
+  and focused regression coverage.
+- **Hard inference cancellation:** a three-second `Future.result(timeout=...)`
+  lets the request degrade safely, but Python cannot forcibly stop a thread
+  already executing a PyTorch operation. A slow inference can continue in the
+  background after the caller times out, so repeated stalls could consume the
+  worker thread and delay later submissions. The timeout bounds the caller's
+  wait; it does not guarantee hard cancellation of the underlying computation.
+- **Production validation and cost scope:** the repeated trials used the local
+  Windows Flask server because Gunicorn requires POSIX support. They do not
+  establish Linux/Gunicorn or cloud reliability, and the local timing is not a
+  provider invoice or an OS-level CPU measurement.
+
+I stopped at the single telemetry improvement required for this milestone
+rather than expanding into behavior changes or a new serving architecture.
+The first thing I would build next is a **process-isolated GPT-2 inference
+worker with a bounded request queue and restart-on-timeout behavior**. A
+separate process can be terminated and restarted when inference hangs, unlike
+an active Python thread.
+
+### 7. How I Used AI
+
+**Moment 1: hardening short-text and inference paths**
+
+- *What I asked:* How to add minimum-evidence handling and protect `/submit`
+  from degenerate sentence statistics and slow GPT-2 inference without
+  changing the normal scoring path.
+- *What came back:* A route-level evidence gate, guards for low sentence
+  counts, and bounded inference with a degraded `unsure` result when the
+  model call fails or times out.
+- *What I changed and verified:* I kept the normal scoring path intact,
+  added the guards and degraded response handling, and ran the stylometry,
+  scoring, and app tests. I also reviewed the timeout limitation rather than
+  treating a timed-out Python thread as forcibly cancelled.
+
+**Moment 2: diagnosing missing long-text telemetry**
+
+- *What I asked:* Why long-text responses had the 400-token count while the
+  matching telemetry events did not, and which one change would address that
+  measured miss.
+- *What came back:* The response and audit decision already had the count;
+  `app.py::emit_telemetry` omitted it. The separate short-text miss occurred
+  earlier in input validation.
+- *What I changed and verified:* I passed the existing count into telemetry
+  and added a regression test comparing the API response with its event. The
+  app suite passed, and three repeat trials confirmed that long-text
+  telemetry reported `tokens_evaluated: 400` in all 5/5 cases each time.
+
+### 8.
 
 
 
