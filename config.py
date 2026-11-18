@@ -132,8 +132,8 @@ DISAGREEMENT_MAX_PULL = 0.5
 # formal writers and edited AI all end up, so its wording has to be safe for
 # someone who wrote every word themselves.
 
-HUMAN_THRESHOLD = 0.40
-AI_THRESHOLD = 0.85
+HUMAN_THRESHOLD = float(os.getenv("THRESHOLD_HUMAN", "0.40"))
+AI_THRESHOLD = float(os.getenv("THRESHOLD_AI", "0.85"))
 
 # Both labels have to be REACHABLE, and the combined score is what decides that.
 # combine_signals can produce anything from 0.0 to 1.0, so both lines are
@@ -198,7 +198,8 @@ RATE_LIMIT_STORAGE = "memory://"
 
 LOG_DIR = ROOT / "logs"
 AUDIT_LOG = LOG_DIR / "audit.jsonl"
-AUDIT_DB = LOG_DIR / "audit.sqlite3"
+AUDIT_DB = Path(os.getenv("AUDIT_DB_PATH", str(LOG_DIR / "audit.sqlite3")))
+TELEMETRY_LOG = LOG_DIR / "telemetry.jsonl"
 RESULTS_DIR = ROOT / "results"
 
 

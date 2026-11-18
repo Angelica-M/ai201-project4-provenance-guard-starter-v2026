@@ -67,6 +67,8 @@ class ServiceTestCase(unittest.TestCase):
         patches = [
             mock.patch.object(config, "LOG_DIR", self.tmp),
             mock.patch.object(config, "AUDIT_LOG", self.tmp / "audit.jsonl"),
+            mock.patch.object(config, "AUDIT_DB", self.tmp / "audit.sqlite3"),
+            mock.patch.object(config, "TELEMETRY_LOG", self.tmp / "telemetry.jsonl"),
             mock.patch.object(detector, "model_signal",
                               side_effect=lambda text: self.model_score),
         ]

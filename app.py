@@ -27,6 +27,9 @@ Routes:
 import unicodedata
 import uuid
 import hashlib
+import json
+import sys
+import time
 
 from flask import Flask, jsonify, request
 
@@ -37,6 +40,44 @@ import scoring
 import stylometry
 
 app = Flask(__name__)
+
+
+def _creator_hash(creator_id) -> str:
+    value = creator_id if isinstance(creator_id, str) else str(creator_id or "")
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def emit_telemetry(*, endpoint: str, content_id: str | None, creator_id,
+                   latency_ms: float = 0.0, model_ms: float = 0.0,
+                   style_ms: float = 0.0, combined_score=None,
+                   model_score=None, style_score=None, guess=None,
+                   truncated: bool = False, status: str = "rejected") -> dict:
+    """Write one canonical telemetry event to stdout and the persistent JSONL."""
+    entry = {
+        "timestamp": __import__("datetime").datetime.now(
+            __import__("datetime").timezone.utc
+        ).isoformat(timespec="milliseconds"),
+        "endpoint": endpoint,
+        "content_id": content_id,
+        "creator_id": _creator_hash(creator_id),
+        "latency_ms": round(latency_ms, 3),
+        "model_ms": round(model_ms, 3),
+        "style_ms": round(style_ms, 3),
+        "combined_score": combined_score,
+        "model_score": model_score,
+        "style_score": style_score,
+        "guess": guess,
+        "disagreement_triggered": scoring.disagreement_triggered(model_score, style_score),
+        "truncated": truncated,
+        "status": status,
+        "config_hash": config.generate_config_hash(),
+    }
+    line = json.dumps(entry, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    print(line, file=sys.stdout, flush=True)
+    config.LOG_DIR.mkdir(parents=True, exist_ok=True)
+    with config.TELEMETRY_LOG.open("a", encoding="utf-8", newline="\n") as handle:
+        handle.write(line + "\n")
+    return entry
 
 
 def _error(status, code, message, creator_id=None):
@@ -60,6 +101,19 @@ def _error(status, code, message, creator_id=None):
             reason=code,
         )
     except OSError:
+        pass
+    try:
+        payload = request.get_json(silent=True)
+        payload = payload if isinstance(payload, dict) else {}
+        emit_telemetry(
+            endpoint=request.path,
+            content_id=payload.get("content_id"),
+            creator_id=creator_id,
+            status="rejected",
+            guess=None,
+            truncated=False,
+        )
+    except Exception:
         pass
     return jsonify({"error": code, "message": message}), status
 
@@ -171,6 +225,9 @@ def health():
 
     loaded = detector._model is not None
     return jsonify({
+        "status": "ok",
+        "model_loaded": loaded,
+        "config_hash": config.generate_config_hash(),
         "ok": True,
         "detector_model": config.DETECTOR_MODEL,
         "detector_loaded": loaded,
@@ -237,6 +294,7 @@ def submit():
 
     # 1. Read the body. `silent=True` means a body that isn't JSON gives None
     #    instead of raising, so we can answer with our own clean error.
+    submit_started = time.perf_counter()
     payload = request.get_json(silent=True)
 
     # 2. Refuse anything we can't score, with a 4xx and a reason, instead of
@@ -301,6 +359,13 @@ def submit():
             text_truncated=text_truncated,
             tokens_evaluated=tokens_evaluated,
         )
+        emit_telemetry(
+            endpoint="/submit", content_id=content_id, creator_id=creator_id,
+            latency_ms=0.0, model_ms=0.0, style_ms=0.0,
+            combined_score=None, model_score=None, style_score=None,
+            guess=guess, truncated=text_truncated,
+            status="insufficient_evidence",
+        )
         return jsonify({
             "content_id": content_id,
             "guess": guess,
@@ -320,13 +385,18 @@ def submit():
     #    the text is too short for the model to score (the caller's problem,
     #    422), or the model itself couldn't load (the service's problem, 503).
     try:
+        model_started = time.perf_counter()
         model_score = detector.model_signal(text)
+        model_ms = (time.perf_counter() - model_started) * 1000.0
     except ValueError as exc:
         return _error(422, "text_too_short", str(exc), creator_id)
     except detector.DetectorUnavailable as exc:
         return _error(503, "detector_unavailable", str(exc), creator_id)
     except (TimeoutError, detector.DetectorTimeout, detector.DetectorInferenceError) as exc:
+        model_ms = (time.perf_counter() - model_started) * 1000.0
+        style_started = time.perf_counter()
         style_score = stylometry.style_signal(text)
+        style_ms = (time.perf_counter() - style_started) * 1000.0
         content_id = str(uuid.uuid4())
         _, _, guess, label = scoring.degraded_result()
         audit.log_decision(
@@ -344,6 +414,12 @@ def submit():
             text_truncated=text_truncated,
             tokens_evaluated=tokens_evaluated,
         )
+        emit_telemetry(
+            endpoint="/submit", content_id=content_id, creator_id=creator_id,
+            latency_ms=model_ms + style_ms, model_ms=model_ms, style_ms=style_ms,
+            combined_score=None, model_score=None, style_score=style_score,
+            guess=guess, truncated=text_truncated, status="degraded",
+        )
         return jsonify({
             "content_id": content_id,
             "guess": guess,
@@ -359,7 +435,10 @@ def submit():
             "tokens_evaluated": tokens_evaluated,
         }), 200
     except Exception as exc:
+        model_ms = (time.perf_counter() - model_started) * 1000.0
+        style_started = time.perf_counter()
         style_score = stylometry.style_signal(text)
+        style_ms = (time.perf_counter() - style_started) * 1000.0
         content_id = str(uuid.uuid4())
         _, _, guess, label = scoring.degraded_result()
         audit.log_decision(
@@ -376,6 +455,12 @@ def submit():
             raw_sha256=raw_sha256,
             text_truncated=text_truncated,
             tokens_evaluated=tokens_evaluated,
+        )
+        emit_telemetry(
+            endpoint="/submit", content_id=content_id, creator_id=creator_id,
+            latency_ms=model_ms + style_ms, model_ms=model_ms, style_ms=style_ms,
+            combined_score=None, model_score=None, style_score=style_score,
+            guess=guess, truncated=text_truncated, status="degraded",
         )
         return jsonify({
             "content_id": content_id,
@@ -395,7 +480,9 @@ def submit():
     # 4. Run signal two (Milestone 4). It measures the text's shape, never loads
     #    a model, and can't fail on text that already passed the checks above,
     #    so it needs no error handling of its own.
+    style_started = time.perf_counter()
     style_score = stylometry.style_signal(text)
+    style_ms = (time.perf_counter() - style_started) * 1000.0
 
     # 5. Turn two numbers into one. This is the number that will be labelled.
     #    Both inputs are kept as well, and go in the log and the response: when
@@ -434,6 +521,13 @@ def submit():
         raw_sha256=raw_sha256,
         text_truncated=text_truncated,
         tokens_evaluated=tokens_evaluated,
+    )
+    emit_telemetry(
+        endpoint="/submit", content_id=content_id, creator_id=creator_id,
+        latency_ms=model_ms + style_ms, model_ms=model_ms, style_ms=style_ms,
+        combined_score=combined_score, model_score=model_score,
+        style_score=style_score, guess=guess, truncated=text_truncated,
+        status="decided",
     )
 
     # 9. Answer.
@@ -479,6 +573,7 @@ def appeal():
 
     # 1. Read and check the body, the same way /submit does. `silent=True` gives
     #    None for a body that isn't JSON, so we can refuse it cleanly.
+    appeal_started = time.perf_counter()
     payload = request.get_json(silent=True)
     if not isinstance(payload, dict):
         return _error(400, "invalid_input",
@@ -521,6 +616,18 @@ def appeal():
         content_id=content_id,
         creator_id=decision["creator_id"],
         reasoning=reasoning,
+    )
+    latency_ms = (time.perf_counter() - appeal_started) * 1000.0
+    emit_telemetry(
+        endpoint="/appeal", content_id=content_id,
+        creator_id=decision["creator_id"], latency_ms=latency_ms,
+        model_ms=0.0, style_ms=0.0,
+        combined_score=decision.get("combined_score"),
+        model_score=decision.get("model_score"),
+        style_score=decision.get("style_score"),
+        guess=decision.get("guess"),
+        truncated=decision.get("text_truncated", False),
+        status="under_review",
     )
 
     # 4. Confirm. No automatic re-checking, as the brief says: the appeal is

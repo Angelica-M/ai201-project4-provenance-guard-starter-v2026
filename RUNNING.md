@@ -2,6 +2,69 @@
 
 Everything about how the starter works.
 
+---
+
+## Capstone — Option A: local production-style runtime
+
+Verified runtime:
+
+- Python: 3.13.7
+- Platform: Windows local development / Linux container
+- GPT-2 cache: approximately 500 MB in Hugging Face cache storage
+- Dependencies: exact versions are pinned in `requirements.txt`
+- CPU-only PyTorch: `torch==2.15.0+cpu`
+
+Clean-environment setup:
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python detector.py
+python test_stylometry.py
+python test_scoring.py
+python test_app.py
+python test_eval_harness.py
+```
+
+Single production-style start command:
+
+```bash
+gunicorn --workers 1 --threads 2 --bind 0.0.0.0:8000 app:app
+```
+
+One worker prevents duplicate GPT-2 weights and serializes the single SQLite
+audit/telemetry write path. Two threads permit concurrent request handling
+while leaving one model worker responsible for GPT-2 inference.
+
+On Windows, activate the virtual environment and call
+`.venv\Scripts\gunicorn.exe` if `gunicorn` is not on `PATH`.
+
+Health check:
+
+```bash
+curl.exe -X GET http://127.0.0.1:8000/health
+```
+
+Structured telemetry is appended to `logs/telemetry.jsonl` and also emitted once
+as JSON to stdout for each `/submit` and `/appeal` request.
+
+## Optional container deployment
+
+The `Dockerfile` installs CPU-only dependencies and pre-downloads GPT-2 during
+the image build. Mount durable storage at `/app/data` or `/app/logs` and set:
+
+```text
+AUDIT_DB_PATH=/app/data/audit.sqlite3
+THRESHOLD_HUMAN=0.40
+THRESHOLD_AI=0.85
+```
+
+For Render: connect the repository to a Web Service, use Docker, add a
+persistent disk, and set `AUDIT_DB_PATH` to a file on that disk. Copy/export
+logs while the instance is available because free-tier instances may sleep.
+
 This is a **web service**. It runs on your machine and you talk to it with
 `curl` from another terminal. If you've not built a backend before, that's
 assumed — the starter ships one that already answers.

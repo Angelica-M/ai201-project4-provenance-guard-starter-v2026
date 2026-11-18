@@ -31,8 +31,10 @@ _lock = threading.RLock()
 
 
 def _db_path():
-    # Keeping the DB beside AUDIT_LOG makes temporary test logs and real logs
-    # isolated in exactly the same way.
+    # A deployment can mount a durable volume and point the DB at it.
+    # Test patches of AUDIT_LOG keep the JSONL and SQLite artifacts isolated.
+    if getattr(config, "AUDIT_DB", None) is not None:
+        return Path(config.AUDIT_DB)
     return config.AUDIT_LOG.with_name("audit.sqlite3")
 
 

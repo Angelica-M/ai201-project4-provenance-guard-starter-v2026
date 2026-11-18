@@ -142,6 +142,13 @@ def combine_signals(model_score: float, style_score: float) -> float:
     return round(min(max(combined, 0.0), 1.0), 4)
 
 
+def disagreement_triggered(model_score: float | None, style_score: float | None) -> bool:
+    """Whether the two signal readings cross the telemetry disagreement gate."""
+    if model_score is None or style_score is None:
+        return False
+    return abs(model_score - style_score) >= config.DISAGREEMENT_START
+
+
 def score_to_label(score: float) -> tuple[str, str]:
     """
     Turn a score into a guess and the text a reader actually sees.
